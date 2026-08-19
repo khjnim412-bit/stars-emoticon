@@ -34,7 +34,10 @@
   .kpi .lab{font-size:11.5px;color:var(--ink-60);letter-spacing:.04em;margin-bottom:8px}
   .kpi .val{font-size:26px;font-weight:800;letter-spacing:-.04em;line-height:1.1;white-space:nowrap}
   .kpi .val small{font-size:14px;font-weight:600;color:var(--ink-35);margin-left:2px}
-  .kpi .delta{font-size:12px;margin-top:7px;color:var(--ink-35)}
+  .kpi .subnet{font-size:11px;margin-top:5px;color:#c8443c;white-space:nowrap}
+  .kpi .delta{font-size:12px;margin-top:5px;color:var(--ink-35)}
+  .prow .v.rf{color:#c8443c;font-size:13px}
+  td.rf,.rf{color:#c8443c}
   .up{color:#1c8a5c}.down{color:#c8443c}
 
   section{margin-top:30px}
@@ -96,6 +99,11 @@
   tbody tr.det + tr.wkrow td{border-top:1px solid var(--line)}
   .dim{color:var(--ink-35)}
   .more{padding:14px 0 2px;text-align:center}
+  table.entry th{font-size:11px}
+  table.entry td{padding:6px 6px}
+  table.entry input{text-align:right;padding:6px 8px;font-size:13px;min-width:88px}
+  table.entry td:first-child{min-width:150px}
+  table.entry tbody tr:last-child{border-bottom:1px solid var(--line)}
   .empty{padding:34px 10px;text-align:center;color:var(--ink-35);font-size:13px;line-height:1.8}
 
   .form{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
@@ -164,7 +172,7 @@
 <header>
   <div>
     <h1>OGQ 이모티콘 판매현황</h1>
-    <p class="sub">매주 목요일 확인 · 직전 목요일~수요일 7일 구간 (확인일 당일은 제외)</p>
+    <p class="sub">매주 목요일 확인 · 모든 수치는 환불 차감 후 순판매 기준</p>
   </div>
   <div class="stamp" id="stamp"></div>
 </header>
@@ -199,7 +207,7 @@
 </section>
 
 <section id="editSection">
-  <div class="head"><h2>주차 추가</h2><p>기간만 확인하고 OGQ 표를 통째로 붙여넣으면 3개가 한 번에 들어갑니다</p></div>
+  <div class="head"><h2>주차 추가</h2><p>상품별 숫자를 채우고 추가하면 한 회차가 통째로 들어갑니다</p></div>
   <div class="panel" style="padding-top:18px">
 
     <div class="form" style="grid-template-columns:repeat(4,1fr)">
@@ -211,40 +219,32 @@
       확인 시각 이후의 판매분이 통째로 빠지고 다음 회차에서도 잡히지 않습니다.
     </p>
 
-    <div class="f" style="margin-top:14px">
-      <label for="bulk">OGQ 통계 표를 드래그해서 복사한 뒤 여기에 붙여넣기 (Ctrl/⌘+V)</label>
-      <textarea id="bulk" placeholder="[움티] 고덜락    12건   36,000원   10명   1개   SOOP   -
-[움티] 나락입니다만?    1건   3,000원   1명   1개   SOOP   -
-[움티] 지글지글 꿀잼   78건  234,000원  42명   2개   SOOP   5개"></textarea>
+    <div class="scroll" style="margin-top:16px">
+      <table id="entryTbl" class="entry"></table>
     </div>
+
     <div class="actions">
-      <button class="btn" id="btnParse">읽어들이기</button>
-      <button class="btn ghost" id="btnUndo">마지막 입력 취소</button>
+      <button class="btn" id="btnCommit">이 회차 추가</button>
+      <button class="btn ghost" id="btnClear">입력값 비우기</button>
+      <button class="btn ghost" id="btnUndo">방금 추가한 회차 취소</button>
       <button class="btn ghost" id="btnSave">파일로 저장</button>
       <span class="msg" id="msg"></span>
     </div>
 
-    <div id="preview" style="display:none;margin-top:16px">
-      <div class="scroll"><table id="pvTbl"></table></div>
-      <div class="actions"><button class="btn" id="btnCommit">이 내용으로 추가</button>
-        <button class="btn ghost" id="btnCancel">취소</button></div>
-    </div>
-
     <details style="margin-top:18px">
-      <summary style="cursor:pointer;font-size:13px;color:var(--ink-60)">직접 한 줄씩 입력하기</summary>
-      <div class="form" style="margin-top:12px">
-        <div class="f"><label for="fProd">상품</label><select id="fProd"></select></div>
-        <div class="f"><label for="fCount">판매건수</label><input type="number" id="fCount" min="0" placeholder="0"></div>
-        <div class="f"><label for="fAmount">판매액(원)</label><input type="number" id="fAmount" min="0" placeholder="0"></div>
-        <div class="f"><label for="fBuyers">실구매자수</label><input type="number" id="fBuyers" min="0" placeholder="0"></div>
-        <div class="f"><label for="fRefund">환불건수</label><input type="number" id="fRefund" min="0" placeholder="0"></div>
-        <div class="f" style="justify-content:flex-end"><button class="btn" id="btnAdd">한 건 추가</button></div>
+      <summary style="cursor:pointer;font-size:13px;color:var(--ink-60)">OGQ 표를 복사해서 한 번에 채우기</summary>
+      <div class="f" style="margin-top:12px">
+        <label for="bulk">OGQ 통계 표를 복사해 붙여넣고 <b>표에 채우기</b>를 누르세요</label>
+        <textarea id="bulk" placeholder="[움티] 고덜락    12건   36,000원   10명   1개   SOOP   -
+[움티] 나락입니다만?    1건   3,000원   1명   1개   SOOP   -
+[움티] 지글지글 꿀잼   78건  234,000원  42명   2개   SOOP   5개"></textarea>
       </div>
+      <div class="actions"><button class="btn ghost" id="btnParse">표에 채우기</button></div>
     </details>
 
     <p class="hint">
       추가한 내용은 아직 화면에만 반영된 상태입니다. <b>파일로 저장</b>을 누르면 이번 주 수치가 들어간
-      새 HTML 파일이 다운로드 폴더에 내려받아집니다. 그 파일로 기존 파일을 덮어쓰거나 공유 위치에 올리면 끝입니다.
+      새 HTML 파일이 다운로드 폴더에 내려받아집니다. 그 파일로 기존 파일을 덮어쓰거나 공유 위치에 올리면 됩니다.
     </p>
   </div>
 </section>
@@ -257,11 +257,11 @@ const RATE = 0.6;
 
 const PRODUCTS = [
   { name:"[움티] 고덜락",        launch:"2026-04-23", color:"#E05B7A",
-    baseDate:"2026-07-22", baseCount:526, baseAmount:1576500 },
+    baseDate:"2026-07-22", baseCount:526, baseAmount:1576500, baseRefunds:4 },
   { name:"[움티] 나락입니다만?", launch:"2026-06-18", color:"#6F63B8",
-    baseDate:"2026-07-22", baseCount:339, baseAmount:1016000 },
+    baseDate:"2026-07-22", baseCount:339, baseAmount:1016000, baseRefunds:6 },
   { name:"[움티] 지글지글 꿀잼", launch:"2026-07-23", color:"#E39A2C",
-    baseDate:"2026-07-22", baseCount:0,   baseAmount:0 }
+    baseDate:"2026-07-22", baseCount:0,   baseAmount:0, baseRefunds:0 }
 ];
 
 const RECORDS = [
@@ -271,12 +271,18 @@ const RECORDS = [
     count:6,   amount:18000,  buyers:4,  refunds:0 },
   { start:"2026-07-23", end:"2026-07-29", product:"[움티] 지글지글 꿀잼",
     count:144, amount:431500, buyers:74, refunds:2 },
-  { start:"2026-07-30", end:"2026-08-06", product:"[움티] 고덜락",
-    count:12,  amount:36000,  buyers:10, refunds:0 },
-  { start:"2026-07-30", end:"2026-08-06", product:"[움티] 나락입니다만?",
+  { start:"2026-07-30", end:"2026-08-05", product:"[움티] 고덜락",
+    count:11,  amount:33000,  buyers:9,  refunds:0 },
+  { start:"2026-07-30", end:"2026-08-05", product:"[움티] 나락입니다만?",
     count:1,   amount:3000,   buyers:1,  refunds:0 },
-  { start:"2026-07-30", end:"2026-08-06", product:"[움티] 지글지글 꿀잼",
-    count:78,  amount:234000, buyers:42, refunds:5 }
+  { start:"2026-07-30", end:"2026-08-05", product:"[움티] 지글지글 꿀잼",
+    count:77,  amount:231000, buyers:41, refunds:5 },
+  { start:"2026-08-06", end:"2026-08-12", product:"[움티] 고덜락",
+    count:2,   amount:6000,   buyers:2,  refunds:0 },
+  { start:"2026-08-06", end:"2026-08-12", product:"[움티] 나락입니다만?",
+    count:20,  amount:60000,  buyers:1,  refunds:20 },
+  { start:"2026-08-06", end:"2026-08-12", product:"[움티] 지글지글 꿀잼",
+    count:27,  amount:81000,  buyers:15, refunds:1 }
 ];
 /* DATA-END */
 
@@ -286,6 +292,12 @@ const md  = s => s ? s.slice(5).replace("-","/") : "";
 const pctTxt = v => (v>=0?"▲ ":"▼ ") + Math.abs(v*100).toFixed(1) + "%";
 const byName = n => PRODUCTS.find(p => p.name === n);
 const wdKo = iso => "일월화수목금토"[new Date(iso+"T00:00:00").getDay()];
+
+/* 환불 차감 — 단가 = 판매액 / 판매건수 */
+const unit    = r => (r.count ? r.amount / r.count : 0);
+const refAmt  = r => Math.round(unit(r) * (r.refunds || 0));
+const netCnt  = r => r.count - (r.refunds || 0);
+const netAmt  = r => r.amount - refAmt(r);
 
 let tab = "all";       // "all" | 상품명
 let metric = "amount"; // "amount" | "count"
@@ -305,10 +317,12 @@ const joined = (p,w) => w.end >= p.baseDate;
 
 function cumAt(p, ws, idx){
   if(!joined(p, ws[idx])) return null;
-  let c=p.baseCount, a=p.baseAmount;
+  const base = { count:p.baseCount, amount:p.baseAmount, refunds:p.baseRefunds||0 };
+  let c=base.count, a=base.amount, nc=netCnt(base), na=netAmt(base);
   for(let i=0;i<=idx;i++)
-    ws[i].rows.filter(r=>r.product===p.name).forEach(r=>{ c+=r.count; a+=r.amount; });
-  return { count:c, gross:a, net:a*RATE };
+    ws[i].rows.filter(r=>r.product===p.name).forEach(r=>{
+      c+=r.count; a+=r.amount; nc+=netCnt(r); na+=netAmt(r); });
+  return { count:c, gross:a, netCount:nc, netGross:na, net:na*RATE };
 }
 function latestFor(p, ws){
   for(let i=ws.length-1;i>=0;i--){
@@ -317,7 +331,7 @@ function latestFor(p, ws){
   }
   return null;
 }
-const mval = r => metric==="amount" ? r.amount : r.count;
+const mval = r => metric==="amount" ? netAmt(r) : netCnt(r);
 const mfmt = v => metric==="amount" ? won(v) : cnt(v);
 const munit = () => metric==="amount" ? "원" : "건";
 
@@ -330,23 +344,28 @@ function render(){
     : `<b>기록 없음</b>첫 주차를 추가하세요`;
 
   /* KPI */
-  let wc=0,wa=0,cc=0,ca=0,pc=0,pa=0;
+  let wc=0,wa=0,wrc=0,wra=0,cc=0,ca=0,crc=0,pc=0,pa=0;
   if(last){
-    last.rows.forEach(r=>{ wc+=r.count; wa+=r.amount; });
-    PRODUCTS.forEach(p=>{ const c=cumAt(p,ws,li); if(c){ cc+=c.count; ca+=c.gross; } });
+    last.rows.forEach(r=>{ wc+=netCnt(r); wa+=netAmt(r); wrc+=r.refunds||0; wra+=refAmt(r); });
+    PRODUCTS.forEach(p=>{ const c=cumAt(p,ws,li);
+      if(c){ cc+=c.netCount; ca+=c.netGross; crc+=c.count-c.netCount; } });
   }
   const hasPrev = ws.length>1;
-  if(hasPrev) ws[li-1].rows.forEach(r=>{ pc+=r.count; pa+=r.amount; });
+  if(hasPrev) ws[li-1].rows.forEach(r=>{ pc+=netCnt(r); pa+=netAmt(r); });
   const d=(n,p)=> (hasPrev&&p>0)? n/p-1 : null;
   const kpi=[
-    ["이번 주 판매건수",cnt(wc),"건",d(wc,pc),"직전 회차 없음"],
-    ["이번 주 판매액",won(wa),"원",d(wa,pa),"직전 회차 없음"],
-    ["누적 판매건수",cnt(cc),"건",null,"출시일부터 전체"],
-    ["누적 판매액",won(ca),"원",null,"출시일부터 전체"]
+    ["이번 주 판매건수",cnt(wc),"건",d(wc,pc),"직전 회차 없음",
+      wrc?`환불 ${cnt(wrc)}건 차감`:""],
+    ["이번 주 판매액",won(wa),"원",d(wa,pa),"직전 회차 없음",
+      wra?`환불 ${won(wra)}원 차감`:""],
+    ["누적 판매건수",cnt(cc),"건",null,"출시일부터 전체",
+      crc?`환불 ${cnt(crc)}건 차감`:""],
+    ["누적 판매액",won(ca),"원",null,"출시일부터 전체",""]
   ];
-  document.getElementById("kpis").innerHTML = kpi.map(([l,v,u,dd,alt])=>`
+  document.getElementById("kpis").innerHTML = kpi.map(([l,v,u,dd,alt,sub])=>`
     <div class="kpi"><div class="lab">${l}</div>
       <div class="val num">${v}<small>${u}</small></div>
+      <div class="subnet">${sub||"&nbsp;"}</div>
       <div class="delta ${dd==null?"":(dd>=0?"up":"down")}">${dd==null?alt:pctTxt(dd)+" 직전 회차 대비"}</div>
     </div>`).join("");
 
@@ -357,10 +376,11 @@ function render(){
       <div class="body">
         <p class="pname">${p.name}</p>
         <p class="pmeta">${p.launch} ${wdKo(p.launch)}요일 출시</p>
-        <div class="prow"><span class="k">이번 주 판매</span><span class="v num">${isLast?cnt(lt.rec.count)+"건":"–"}</span></div>
-        <div class="prow"><span class="k">이번 주 판매액</span><span class="v num">${isLast?won(lt.rec.amount)+"원":"–"}</span></div>
-        <div class="prow"><span class="k">누적 판매</span><span class="v num">${c?cnt(c.count)+"건":"–"}</span></div>
-        <div class="prow"><span class="k">누적 판매액</span><span class="v num" style="color:${p.color}">${c?won(c.gross)+"원":"–"}</span></div>
+        <div class="prow"><span class="k">이번 주 판매</span><span class="v num">${isLast?cnt(netCnt(lt.rec))+"건":"–"}</span></div>
+        <div class="prow"><span class="k">이번 주 판매액</span><span class="v num">${isLast?won(netAmt(lt.rec))+"원":"–"}</span></div>
+        ${isLast&&lt.rec.refunds?`<div class="prow"><span class="k">환불</span><span class="v num rf">-${cnt(lt.rec.refunds)}건 · -${won(refAmt(lt.rec))}원</span></div>`:""}
+        <div class="prow"><span class="k">누적 판매</span><span class="v num">${c?cnt(c.netCount)+"건":"–"}</span></div>
+        <div class="prow"><span class="k">누적 판매액</span><span class="v num" style="color:${p.color}">${c?won(c.netGross)+"원":"–"}</span></div>
       </div></div>`;
   }).join("");
 
@@ -388,7 +408,8 @@ function renderChart(ws){
   const box = document.getElementById("chart"), sl = document.getElementById("statline");
   if(tab==="all"){
     const vals = ws.map(w=>w.rows.reduce((s,r)=>s+mval(r),0));
-    sl.innerHTML = ws.length ? stats(vals) : "";
+    const refs = ws.map(w=>w.rows.reduce((s,r)=>s+(metric==="amount"?refAmt(r):(r.refunds||0)),0));
+    sl.innerHTML = ws.length ? stats(vals, refs) : "";
     box.innerHTML = ws.length
       ? stackedBars(ws)
       : emptyMsg("아직 기록이 없습니다.", "아래 <b>주차 추가</b>에서 첫 주차를 넣어보세요.");
@@ -405,19 +426,23 @@ function renderChart(ws){
     return;
   }
   const vals = mine.map(w=>mval(w.rows.find(r=>r.product===p.name)));
-  sl.innerHTML = stats(vals);
+  const refs = mine.map(w=>{ const r=w.rows.find(x=>x.product===p.name);
+    return metric==="amount"?refAmt(r):(r.refunds||0); });
+  sl.innerHTML = stats(vals, refs);
   box.innerHTML = singleBars(mine, p);
 }
 
-function stats(vals){
+function stats(vals, refs){
   const sum = vals.reduce((a,b)=>a+b,0);
   const avg = sum/vals.length;
   const max = Math.max(...vals);
   const lastV = vals[vals.length-1], prev = vals.length>1 ? vals[vals.length-2] : null;
   const dd = (prev&&prev>0) ? lastV/prev-1 : null;
   const cell=(k,v,extra="")=>`<div class="stat"><div class="k">${k}</div><div class="v num" ${extra}>${v}</div></div>`;
+  const refLast = refs ? refs[refs.length-1] : 0;
   return cell("최근 주", mfmt(lastV)+munit(),
       dd==null?"":`style="color:${dd>=0?"#1c8a5c":"#c8443c"}"`)
+    + (refLast ? cell("최근 주 환불", "-"+mfmt(refLast)+munit(), 'style="color:#c8443c"') : "")
     + cell("주 평균", mfmt(avg)+munit())
     + cell("최고 주", mfmt(max)+munit())
     + cell("기록 회차", vals.length+"회");
@@ -501,29 +526,33 @@ function renderTable(ws){
   const ordered = [...ws].reverse();
   const shown = showAllWeeks ? ordered : ordered.slice(0, PAGE);
   const hidden = ordered.length - shown.length;
-  hint.textContent = `회차를 누르면 상품별 상세가 열립니다 · 실수령은 판매액의 ${RATE*100}%`;
+  hint.textContent = `회차를 누르면 상품별 상세가 열립니다 · 순판매 = 판매 − 환불 · 실수령은 순판매액의 ${RATE*100}%`;
 
   const body = shown.map(w => {
     const i = ws.indexOf(w);
     const open = openWeeks.has(w.no);
     const rows = PRODUCTS.map(p => ({ p, r: w.rows.find(x => x.product === p.name) }))
                          .filter(x => x.r);
-    const sum = rows.reduce((a,{r}) => ({c:a.c+r.count, m:a.m+r.amount, f:a.f+r.refunds}),
-                            {c:0,m:0,f:0});
-    let allCum = 0;
-    PRODUCTS.forEach(p => { const c = cumAt(p, ws, i); if(c) allCum += c.gross; });
+    const S = rows.reduce((a,{r}) => ({
+      c:a.c+r.count, m:a.m+r.amount, rc:a.rc+(r.refunds||0), ra:a.ra+refAmt(r),
+      nc:a.nc+netCnt(r), na:a.na+netAmt(r)
+    }), {c:0,m:0,rc:0,ra:0,nc:0,na:0});
+    let cumNet = 0;
+    PRODUCTS.forEach(p => { const c = cumAt(p, ws, i); if(c) cumNet += c.netGross; });
 
     const head = `<tr class="wkrow${open?" open":""}" data-no="${w.no}" tabindex="0" role="button"
         aria-expanded="${open}">
       <td><span class="caret">${open?"▾":"▸"}</span><b>${w.no}회차</b></td>
       <td class="num mono">${md(w.start)}–${md(w.end)}</td>
       <td class="dim">${rows.length}개 상품</td>
-      <td class="num">${cnt(sum.c)}</td>
-      <td class="num"><b>${won(sum.m)}</b></td>
-      <td class="num net">${won(sum.m*RATE)}</td>
-      <td class="num dim">–</td>
-      <td class="num">${cnt(sum.f)}</td>
-      <td class="num"><b>${won(allCum)}</b></td></tr>`;
+      <td class="num">${cnt(S.c)}</td>
+      <td class="num rf">${S.rc?"-"+cnt(S.rc):"–"}</td>
+      <td class="num"><b>${cnt(S.nc)}</b></td>
+      <td class="num">${won(S.m)}</td>
+      <td class="num rf">${S.ra?"-"+won(S.ra):"–"}</td>
+      <td class="num"><b>${won(S.na)}</b></td>
+      <td class="num net">${won(S.na*RATE)}</td>
+      <td class="num"><b>${won(cumNet)}</b></td></tr>`;
 
     if(!open) return head;
     return head + rows.map(({p,r}) => {
@@ -532,17 +561,21 @@ function renderTable(ws){
         <td></td><td></td>
         <td><span class="pn"><i class="swatch" style="background:${p.color}"></i>${p.name}</span></td>
         <td class="num">${cnt(r.count)}</td>
+        <td class="num rf">${r.refunds?"-"+cnt(r.refunds):"–"}</td>
+        <td class="num">${cnt(netCnt(r))}</td>
         <td class="num">${won(r.amount)}</td>
-        <td class="num net">${won(r.amount*RATE)}</td>
-        <td class="num">${cnt(r.buyers)}</td>
-        <td class="num">${cnt(r.refunds)}</td>
-        <td class="num" style="color:${p.color}">${c?won(c.gross):"–"}</td></tr>`;
+        <td class="num rf">${r.refunds?"-"+won(refAmt(r)):"–"}</td>
+        <td class="num">${won(netAmt(r))}</td>
+        <td class="num net">${won(netAmt(r)*RATE)}</td>
+        <td class="num" style="color:${p.color}">${c?won(c.netGross):"–"}</td></tr>`;
     }).join("");
   }).join("");
 
   box.innerHTML = `<table><thead><tr>
-      <th>회차</th><th>기간</th><th>상품</th><th>판매건수</th><th>판매액</th>
-      <th class="net">실수령 ${RATE*100}%</th><th>실구매자</th><th>환불</th><th>누적 판매액</th>
+      <th>회차</th><th>기간</th><th>상품</th>
+      <th>판매건수</th><th class="rf">환불</th><th>순판매</th>
+      <th>판매액</th><th class="rf">환불액</th><th>순판매액</th>
+      <th class="net">실수령 ${RATE*100}%</th><th>누적 순판매액</th>
     </tr></thead><tbody>${body}</tbody></table>` +
     (hidden>0 || showAllWeeks
       ? `<div class="more"><button class="btn ghost" id="btnMore">${
@@ -566,111 +599,114 @@ document.getElementById("tblBox").addEventListener("keydown", e=>{
 
 /* ---------------------------------------------- form */
 const $ = id => document.getElementById(id);
-$("fProd").innerHTML = PRODUCTS.map(p=>`<option>${p.name}</option>`).join("");
+const FIELDS = [["count","판매건수"],["amount","판매액(원)"],["buyers","실구매자수"],["refunds","환불건수"]];
+const cellId = (i,k) => `e_${i}_${k}`;
 
-(function prefill(){
-  const iso = d => d.toISOString().slice(0,10);
-  const ws = weeks(); if(!ws.length) return;
-  const s = new Date(ws[ws.length-1].end+"T00:00:00"); s.setDate(s.getDate()+1);
-  // 종료일 = 어제 (오늘을 넣으면 확인 시각 이후 판매분이 누락됨)
-  const e = new Date(); e.setHours(0,0,0,0); e.setDate(e.getDate()-1);
-  if(e < s){ e.setTime(s.getTime()); e.setDate(e.getDate()+6); }
-  $("fStart").value = iso(s); $("fEnd").value = iso(e);
-})();
-
-function commit(rec){
-  const dup = RECORDS.findIndex(r=>r.end===rec.end && r.product===rec.product);
-  if(dup>=0){ history.push({type:"replace",idx:dup,old:RECORDS[dup]}); RECORDS[dup]=rec; }
-  else{ history.push({type:"add"}); RECORDS.push(rec); }
+function buildEntry(){
+  const t = $("entryTbl"); if(!t) return;
+  t.innerHTML = `<thead><tr><th>상품</th>${FIELDS.map(f=>`<th>${f[1]}</th>`).join("")}</tr></thead>
+    <tbody>${PRODUCTS.map((p,i)=>`<tr>
+      <td><span class="pn"><i class="swatch" style="background:${p.color}"></i>${p.name}</span></td>
+      ${FIELDS.map(f=>`<td><input type="number" min="0" id="${cellId(i,f[0])}" placeholder="0"></td>`).join("")}
+    </tr>`).join("")}</tbody>`;
 }
 
-/* 붙여넣은 표에서 상품별 숫자 뽑기 */
+function readEntry(){
+  const start = $("fStart").value, end = $("fEnd").value;
+  if(!start || !end) return { err:"기간을 먼저 정해주세요." };
+  if(end < start)    return { err:"종료일이 시작일보다 빠릅니다." };
+  const rows = [];
+  PRODUCTS.forEach((p,i)=>{
+    const v = {};
+    let any = false;
+    FIELDS.forEach(f=>{
+      const el = $(cellId(i,f[0]));
+      const raw = el ? el.value.trim() : "";
+      if(raw !== "") any = true;
+      v[f[0]] = +raw || 0;
+    });
+    if(any) rows.push({ ...v, product:p.name, start, end });
+  });
+  if(!rows.length) return { err:"입력된 숫자가 없습니다. 판매가 없었다면 0을 적어주세요." };
+  return { rows, start, end };
+}
+
+function clearEntry(){
+  PRODUCTS.forEach((p,i)=>FIELDS.forEach(f=>{ const el=$(cellId(i,f[0])); if(el) el.value=""; }));
+}
+
+/* 회차 단위로 묶어서 되돌리기 */
+function commitBatch(rows){
+  const batch = rows.map(rec=>{
+    const dup = RECORDS.findIndex(r=>r.end===rec.end && r.product===rec.product);
+    if(dup>=0){ const step={type:"replace",idx:dup,old:RECORDS[dup]}; RECORDS[dup]=rec; return step; }
+    RECORDS.push(rec); return { type:"add" };
+  });
+  history.push(batch);
+}
+
+$("btnCommit").addEventListener("click", ()=>{
+  const r = readEntry();
+  if(r.err){ $("msg").textContent = r.err; return; }
+  commitBatch(r.rows);
+  clearEntry();
+  $("msg").textContent = `${md(r.start)}–${md(r.end)} · ${r.rows.length}개 상품을 추가했습니다.`;
+  openWeeks = null; render();
+});
+
+$("btnClear").addEventListener("click", ()=>{
+  clearEntry(); $("msg").textContent = "입력값을 비웠습니다.";
+});
+
+$("btnUndo").addEventListener("click", ()=>{
+  const batch = history.pop();
+  if(!batch){ $("msg").textContent = "되돌릴 입력이 없습니다."; return; }
+  [...batch].reverse().forEach(step=>{
+    if(step.type==="add") RECORDS.pop(); else RECORDS[step.idx] = step.old;
+  });
+  $("msg").textContent = `방금 추가한 ${batch.length}건을 되돌렸습니다.`;
+  openWeeks = null; render();
+});
+
+/* 붙여넣은 표에서 상품별 숫자 뽑아 입력칸 채우기 */
 function parseBulk(text){
   const flat = text.replace(/\u00a0/g," ");
-  const hits = PRODUCTS
-    .map(p => ({ p, at: flat.indexOf(p.name) }))
-    .filter(x => x.at >= 0)
-    .sort((a,b) => a.at - b.at);
+  const hits = PRODUCTS.map((p,i)=>({ p, i, at:flat.indexOf(p.name) }))
+                       .filter(x=>x.at>=0).sort((a,b)=>a.at-b.at);
   if(!hits.length) return { rows:[], miss:PRODUCTS.map(p=>p.name) };
-
   const num = t => +t.replace(/,/g,"");
-  const rows = hits.map((h,i) => {
+  const rows = hits.map((h,k)=>{
     const seg = flat.slice(h.at + h.p.name.length,
-                           i+1 < hits.length ? hits[i+1].at : flat.length);
+                           k+1 < hits.length ? hits[k+1].at : flat.length);
     const g = re => { const m = seg.match(re); return m ? num(m[1]) : null; };
-    const gae = [...seg.matchAll(/([\d,]+)\s*개/g)].map(m => num(m[1]));
-    return {
-      product: h.p.name,
-      count:   g(/([\d,]+)\s*건/),
-      amount:  g(/([\d,]+)\s*원/),
-      buyers:  g(/([\d,]+)\s*명/),
-      refunds: gae.length >= 2 ? gae[gae.length-1] : 0
-    };
-  }).filter(r => r.count !== null || r.amount !== null);
-
+    const gae = [...seg.matchAll(/([\d,]+)\s*개/g)].map(m=>num(m[1]));
+    return { idx:h.i, product:h.p.name,
+      count:g(/([\d,]+)\s*건/), amount:g(/([\d,]+)\s*원/), buyers:g(/([\d,]+)\s*명/),
+      refunds: gae.length>=2 ? gae[gae.length-1] : 0 };
+  }).filter(r=>r.count!==null || r.amount!==null);
   const found = rows.map(r=>r.product);
   return { rows, miss: PRODUCTS.map(p=>p.name).filter(n=>!found.includes(n)) };
 }
 
-let pending = null;
-
 $("btnParse").addEventListener("click", ()=>{
-  const start = $("fStart").value, end = $("fEnd").value;
-  if(!start || !end){ $("msg").textContent="기간을 먼저 정해주세요."; return; }
-  if(end < start){ $("msg").textContent="종료일이 시작일보다 빠릅니다."; return; }
   const { rows, miss } = parseBulk($("bulk").value);
-  if(!rows.length){
-    $("msg").textContent="상품명을 못 찾았습니다. 표 전체를 다시 복사해 붙여넣어 주세요.";
-    $("preview").style.display="none"; return;
-  }
-  pending = rows.map(r => ({ ...r, start, end,
-    count:r.count||0, amount:r.amount||0, buyers:r.buyers||0, refunds:r.refunds||0 }));
-  $("pvTbl").innerHTML = `<thead><tr>
-      <th>상품</th><th>판매건수</th><th>판매액</th><th>실수령 ${RATE*100}%</th><th>실구매자</th><th>환불</th>
-    </tr></thead><tbody>${pending.map(r=>{
-      const p = byName(r.product);
-      return `<tr>
-        <td><span class="pn"><i class="swatch" style="background:${p.color}"></i>${r.product}</span></td>
-        <td class="num">${cnt(r.count)}</td>
-        <td class="num"><b>${won(r.amount)}</b></td>
-        <td class="num net">${won(r.amount*RATE)}</td>
-        <td class="num">${cnt(r.buyers)}</td>
-        <td class="num">${cnt(r.refunds)}</td></tr>`;
-    }).join("")}</tbody>`;
-  $("preview").style.display="block";
-  $("msg").textContent = `${md(start)}–${md(end)} · ${pending.length}개 상품을 읽었습니다.`
-    + (miss.length ? ` (${miss.join(", ")}는 표에 없어 건너뜁니다)` : "");
+  if(!rows.length){ $("msg").textContent="상품명을 못 찾았습니다. 표를 다시 복사해 붙여넣거나 직접 입력해 주세요."; return; }
+  rows.forEach(r=>FIELDS.forEach(f=>{
+    const el = $(cellId(r.idx, f[0])); if(el && r[f[0]] !== null) el.value = r[f[0]];
+  }));
+  $("msg").textContent = `${rows.length}개 상품을 표에 채웠습니다. 숫자를 확인하고 추가하세요.`
+    + (miss.length ? ` (${miss.join(", ")}는 못 찾았습니다)` : "");
 });
 
-$("btnCommit").addEventListener("click", ()=>{
-  if(!pending) return;
-  pending.forEach(commit);
-  $("msg").textContent = `${pending.length}개 상품을 ${md(pending[0].start)}–${md(pending[0].end)} 회차에 넣었습니다.`;
-  pending = null; $("preview").style.display="none"; $("bulk").value="";
-  openWeeks = null; render();
-});
-$("btnCancel").addEventListener("click", ()=>{
-  pending = null; $("preview").style.display="none"; $("msg").textContent="취소했습니다.";
-});
-
-$("btnAdd").addEventListener("click", ()=>{
-  const rec = { start:$("fStart").value, end:$("fEnd").value, product:$("fProd").value,
-    count:+$("fCount").value||0, amount:+$("fAmount").value||0,
-    buyers:+$("fBuyers").value||0, refunds:+$("fRefund").value||0 };
-  if(!rec.start||!rec.end){ $("msg").textContent="기간을 먼저 정해주세요."; return; }
-  if(rec.end<rec.start){ $("msg").textContent="종료일이 시작일보다 빠릅니다."; return; }
-  commit(rec);
-  ["fCount","fAmount","fBuyers","fRefund"].forEach(id=>$(id).value="");
-  $("msg").textContent = `${rec.product} ${md(rec.start)}–${md(rec.end)} 반영했습니다.`;
-  openWeeks = null; render();
-});
-
-$("btnUndo").addEventListener("click", ()=>{
-  const h = history.pop();
-  if(!h){ $("msg").textContent="되돌릴 입력이 없습니다."; return; }
-  if(h.type==="add") RECORDS.pop(); else RECORDS[h.idx]=h.old;
-  $("msg").textContent="마지막 입력을 취소했습니다."; openWeeks=null; render();
-});
+(function prefill(){
+  const iso = d => d.toISOString().slice(0,10);
+  buildEntry();
+  const ws = weeks(); if(!ws.length) return;
+  const s = new Date(ws[ws.length-1].end+"T00:00:00"); s.setDate(s.getDate()+1);
+  const e = new Date(); e.setHours(0,0,0,0); e.setDate(e.getDate()-1);
+  if(e < s){ e.setTime(s.getTime()); e.setDate(e.getDate()+6); }
+  $("fStart").value = iso(s); $("fEnd").value = iso(e);
+})();
 
 function dataBlock(){
   return "/* DATA-START */\nconst RATE = " + RATE + ";\n\nconst PRODUCTS = "
@@ -679,21 +715,22 @@ function dataBlock(){
 }
 
 $("btnSave").addEventListener("click", ()=>{
-  const ids = ["kpis","cards","tabs","statline","chart","tblBox","pvTbl"];
+  const ids = ["kpis","cards","tabs","statline","chart","tblBox","printBlock"];
   const keep = {};
   ids.forEach(id=>{ const el=$(id); if(el){ keep[id]=el.innerHTML; el.innerHTML=""; } });
   const wasEdit = document.body.classList.contains("edit");
   document.body.classList.remove("edit");
-  const pv = $("preview"), pvd = pv ? pv.style.display : null;
-  if(pv) pv.style.display = "none";
   const bulk = $("bulk"); const bulkVal = bulk ? bulk.value : ""; if(bulk) bulk.value = "";
+  const entrySaved = PRODUCTS.map((p,i)=>FIELDS.map(f=>{
+    const el=$(cellId(i,f[0])); const v = el?el.value:""; if(el) el.removeAttribute("value"); return v; }));
 
   let src = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
 
   ids.forEach(id=>{ const el=$(id); if(el) el.innerHTML = keep[id]; });
   if(wasEdit) document.body.classList.add("edit");
-  if(pv) pv.style.display = pvd;
   if(bulk) bulk.value = bulkVal;
+  PRODUCTS.forEach((p,i)=>FIELDS.forEach((f,k)=>{
+    const el=$(cellId(i,f[0])); if(el) el.value = entrySaved[i][k]; }));
 
   const block = dataBlock();
   src = src.replace(/\/\* DATA-START \*\/[\s\S]*?\/\* DATA-END \*\//, ()=>block);
