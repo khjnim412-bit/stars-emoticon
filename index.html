@@ -37,6 +37,10 @@
   .kpi .subnet{font-size:11px;margin-top:5px;color:#c8443c;white-space:nowrap}
   .kpi .delta{font-size:12px;margin-top:5px;color:var(--ink-35)}
   .prow .v.rf{color:#c8443c;font-size:13px}
+  .ptag{margin:11px 0 1px;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+    color:var(--ink-35);text-transform:none}
+  .ptag:first-of-type{margin-top:2px}
+  .prow + .ptag{border-top:1px solid var(--line);padding-top:9px}
   td.rf,.rf{color:#c8443c}
   .up{color:#1c8a5c}.down{color:#c8443c}
 
@@ -257,11 +261,11 @@ const RATE = 0.6;
 
 const PRODUCTS = [
   { name:"[움티] 고덜락",        launch:"2026-04-23", color:"#E05B7A",
-    baseDate:"2026-07-22", baseCount:526, baseAmount:1576500, baseRefunds:4 },
+    baseDate:"2026-07-22", baseCount:526, baseAmount:1576500, baseRefunds:4, baseBuyers:173 },
   { name:"[움티] 나락입니다만?", launch:"2026-06-18", color:"#6F63B8",
-    baseDate:"2026-07-22", baseCount:339, baseAmount:1016000, baseRefunds:6 },
+    baseDate:"2026-07-22", baseCount:339, baseAmount:1016000, baseRefunds:6, baseBuyers:126 },
   { name:"[움티] 지글지글 꿀잼", launch:"2026-07-23", color:"#E39A2C",
-    baseDate:"2026-07-22", baseCount:0,   baseAmount:0, baseRefunds:0 }
+    baseDate:"2026-07-22", baseCount:0,   baseAmount:0, baseRefunds:0, baseBuyers:0 }
 ];
 
 const RECORDS = [
@@ -330,6 +334,14 @@ function cumAt(p, ws, idx){
       c+=r.count; a+=r.amount; nc+=netCnt(r); na+=netAmt(r); });
   return { count:c, gross:a, netCount:nc, netGross:na, net:na*RATE };
 }
+function cumBuyers(p, ws, idx){
+  if(!joined(p, ws[idx])) return null;
+  let n = p.baseBuyers || 0, seen = false;
+  for(let i=0;i<=idx;i++)
+    ws[i].rows.filter(r=>r.product===p.name).forEach(r=>{ n += r.buyers||0; seen = true; });
+  return (seen || p.baseBuyers) ? n : null;
+}
+
 function latestFor(p, ws){
   for(let i=ws.length-1;i>=0;i--){
     const r = ws[i].rows.find(x=>x.product===p.name);
@@ -382,11 +394,18 @@ function render(){
       <div class="body">
         <p class="pname">${p.name}</p>
         <p class="pmeta">${p.launch} ${wdKo(p.launch)}요일 출시</p>
-        <div class="prow"><span class="k">이번 주 판매</span><span class="v num">${isLast?cnt(netCnt(lt.rec))+"건":"–"}</span></div>
-        <div class="prow"><span class="k">이번 주 판매액</span><span class="v num">${isLast?won(netAmt(lt.rec))+"원":"–"}</span></div>
-        ${isLast&&lt.rec.refunds?`<div class="prow"><span class="k">환불</span><span class="v num rf">-${cnt(lt.rec.refunds)}건 · -${won(refAmt(lt.rec))}원</span></div>`:""}
-        <div class="prow"><span class="k">누적 판매</span><span class="v num">${c?cnt(c.netCount)+"건":"–"}</span></div>
-        <div class="prow"><span class="k">누적 판매액</span><span class="v num" style="color:${p.color}">${c?won(c.netGross)+"원":"–"}</span></div>
+        <p class="ptag">이번 주</p>
+        <div class="prow"><span class="k">판매</span><span class="v num">${isLast?cnt(netCnt(lt.rec))+"건":"–"}</span></div>
+        <div class="prow"><span class="k">판매액</span><span class="v num">${isLast?won(netAmt(lt.rec))+"원":"–"}</span></div>
+        <div class="prow"><span class="k">실구매자</span><span class="v num">${isLast?cnt(lt.rec.buyers)+"명":"–"}</span></div>
+        <div class="prow"><span class="k">환불</span><span class="v num ${isLast&&lt.rec.refunds?"rf":""}">${
+          isLast ? (lt.rec.refunds ? "-"+cnt(lt.rec.refunds)+"건 · -"+won(refAmt(lt.rec))+"원" : "0건") : "–"}</span></div>
+        <p class="ptag">누적</p>
+        <div class="prow"><span class="k">판매</span><span class="v num">${c?cnt(c.netCount)+"건":"–"}</span></div>
+        <div class="prow"><span class="k">판매액</span><span class="v num" style="color:${p.color}">${c?won(c.netGross)+"원":"–"}</span></div>
+        <div class="prow"><span class="k">실구매자</span><span class="v num">${cumBuyers(p,ws,li)==null?"–":cnt(cumBuyers(p,ws,li))+"명"}</span></div>
+        <div class="prow"><span class="k">환불</span><span class="v num ${c&&c.count>c.netCount?"rf":""}">${
+          c ? (c.count>c.netCount ? "-"+cnt(c.count-c.netCount)+"건" : "0건") : "–"}</span></div>
       </div></div>`;
   }).join("");
 
