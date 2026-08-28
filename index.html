@@ -185,8 +185,18 @@
 <div class="kpis" id="kpis"></div>
 
 <section>
-  <div class="head"><h2>상품별 현황</h2><p>색은 아래 그래프·표에서도 같은 상품을 가리킵니다</p></div>
+  <div class="head"><h2>상품별 현황</h2><p id="cardsHint">색은 아래 그래프·표에서도 같은 상품을 가리킵니다</p></div>
   <div class="cards" id="cards"></div>
+</section>
+
+<section id="legacySection" style="display:none">
+  <div class="head"><h2>이전 출시 상품 · 누적</h2><p>출시 순으로 오래된 상품은 카드 대신 요약표로 표시됩니다</p></div>
+  <div class="panel scroll" style="padding-top:16px">
+    <table id="legacyTbl">
+      <thead><tr><th class="pn">상품</th><th>출시일</th><th>누적 판매</th><th>누적 판매액</th><th>누적 실구매자</th><th>누적 환불</th></tr></thead>
+      <tbody id="legacyBody"></tbody>
+    </table>
+  </div>
 </section>
 
 <section>
@@ -292,7 +302,13 @@ const RECORDS = [
   { start:"2026-08-13", end:"2026-08-19", product:"[움티] 나락입니다만?",
     count:2,   amount:6000,   buyers:2,  refunds:0 },
   { start:"2026-08-13", end:"2026-08-19", product:"[움티] 지글지글 꿀잼",
-    count:21,  amount:63000,  buyers:16, refunds:0 }
+    count:21,  amount:63000,  buyers:16, refunds:0 },
+  { start:"2026-08-20", end:"2026-08-26", product:"[움티] 고덜락",
+    count:2,   amount:6000,   buyers:2,  refunds:0 },
+  { start:"2026-08-20", end:"2026-08-26", product:"[움티] 나락입니다만?",
+    count:2,   amount:6000,   buyers:1,  refunds:0 },
+  { start:"2026-08-20", end:"2026-08-26", product:"[움티] 지글지글 꿀잼",
+    count:1,   amount:3000,   buyers:1,  refunds:0 }
 ];
 /* DATA-END */
 
@@ -387,8 +403,16 @@ function render(){
       <div class="delta ${dd==null?"":(dd>=0?"up":"down")}">${dd==null?alt:pctTxt(dd)+" 직전 회차 대비"}</div>
     </div>`).join("");
 
-  /* 상품 카드 */
-  document.getElementById("cards").innerHTML = PRODUCTS.map(p=>{
+  /* 상품 카드 — 출시일 최신 3종만 카드로, 나머지는 아래 요약표로 */
+  const byRecent = [...PRODUCTS].sort((a,b)=> a.launch<b.launch?1:-1);
+  const cardProducts = byRecent.slice(0,3);
+  const legacyProducts = byRecent.slice(3);
+
+  document.getElementById("cardsHint").textContent = legacyProducts.length
+    ? "최근 출시 3종만 카드로 표시됩니다 · 이전 상품은 아래 요약표 참고"
+    : "색은 아래 그래프·표에서도 같은 상품을 가리킵니다";
+
+  document.getElementById("cards").innerHTML = cardProducts.map(p=>{
     const c=cumAt(p,ws,li), lt=latestFor(p,ws), isLast = lt && lt.idx===li;
     return `<div class="pcard"><div class="rail" style="background:${p.color}"></div>
       <div class="body">
@@ -409,9 +433,28 @@ function render(){
       </div></div>`;
   }).join("");
 
+  renderLegacy(legacyProducts, ws, li);
+
   renderTabs();
   renderChart(ws);
   renderTable(ws);
+}
+
+function renderLegacy(legacyProducts, ws, li){
+  const sec = document.getElementById("legacySection");
+  if(!legacyProducts.length){ sec.style.display = "none"; return; }
+  sec.style.display = "";
+  document.getElementById("legacyBody").innerHTML = legacyProducts.map(p=>{
+    const c = cumAt(p, ws, li), buyers = cumBuyers(p, ws, li);
+    return `<tr>
+      <td class="pn"><span class="swatch" style="background:${p.color}"></span>${p.name}</td>
+      <td>${p.launch}</td>
+      <td>${c?cnt(c.netCount)+"건":"–"}</td>
+      <td style="color:${p.color}">${c?won(c.netGross)+"원":"–"}</td>
+      <td>${buyers==null?"–":cnt(buyers)+"명"}</td>
+      <td class="${c&&c.count>c.netCount?"rf":""}">${c?(c.count>c.netCount?"-"+cnt(c.count-c.netCount)+"건":"0건"):"–"}</td>
+    </tr>`;
+  }).join("");
 }
 
 function renderTabs(){
