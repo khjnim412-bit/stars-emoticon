@@ -275,7 +275,9 @@ const PRODUCTS = [
   { name:"[움티] 나락입니다만?", launch:"2026-06-18", color:"#6F63B8",
     baseDate:"2026-07-22", baseCount:339, baseAmount:1016000, baseRefunds:6, baseBuyers:126 },
   { name:"[움티] 지글지글 꿀잼", launch:"2026-07-23", color:"#E39A2C",
-    baseDate:"2026-07-22", baseCount:0,   baseAmount:0, baseRefunds:0, baseBuyers:0 }
+    baseDate:"2026-07-22", baseCount:0,   baseAmount:0, baseRefunds:0, baseBuyers:0 },
+  { name:"[움티] 백호구의 매니저 생활", launch:"2026-08-27", color:"#3B8FD1",
+    baseDate:"2026-08-26", baseCount:0,   baseAmount:0, baseRefunds:0, baseBuyers:0 }
 ];
 
 const RECORDS = [
@@ -308,7 +310,15 @@ const RECORDS = [
   { start:"2026-08-20", end:"2026-08-26", product:"[움티] 나락입니다만?",
     count:2,   amount:6000,   buyers:1,  refunds:0 },
   { start:"2026-08-20", end:"2026-08-26", product:"[움티] 지글지글 꿀잼",
-    count:1,   amount:3000,   buyers:1,  refunds:0 }
+    count:1,   amount:3000,   buyers:1,  refunds:0 },
+  { start:"2026-08-27", end:"2026-09-02", product:"[움티] 지글지글 꿀잼",
+    count:4,   amount:12000,  buyers:4,  refunds:0 },
+  { start:"2026-08-27", end:"2026-09-02", product:"[움티] 고덜락",
+    count:2,   amount:6000,   buyers:2,  refunds:0 },
+  { start:"2026-08-27", end:"2026-09-02", product:"[움티] 나락입니다만?",
+    count:1,   amount:3000,   buyers:1,  refunds:0 },
+  { start:"2026-08-27", end:"2026-09-02", product:"[움티] 백호구의 매니저 생활",
+    count:64,  amount:192000, buyers:44, refunds:2 }
 ];
 /* DATA-END */
 
@@ -404,7 +414,7 @@ function render(){
     </div>`).join("");
 
   /* 상품 카드 — 출시일 최신 3종만 카드로, 나머지는 아래 요약표로 */
-  const byRecent = [...PRODUCTS].sort((a,b)=> a.launch<b.launch?1:-1);
+  const byRecent = productsByRecent();
   const cardProducts = byRecent.slice(0,3);
   const legacyProducts = byRecent.slice(3);
 
@@ -457,9 +467,13 @@ function renderLegacy(legacyProducts, ws, li){
   }).join("");
 }
 
+function productsByRecent(){
+  return [...PRODUCTS].sort((a,b)=> a.launch<b.launch?1:-1);
+}
+
 function renderTabs(){
   const items = [{key:"all",label:"전체",color:"#181722"}]
-    .concat(PRODUCTS.map(p=>({key:p.name,label:p.name,color:p.color})));
+    .concat(productsByRecent().map(p=>({key:p.name,label:p.name,color:p.color})));
   document.getElementById("tabs").innerHTML = items.map(it=>`
     <button class="tab" role="tab" data-key="${it.key}" aria-selected="${tab===it.key}"
       style="${tab===it.key?`--accent:${it.color};`:""}">
@@ -599,14 +613,14 @@ function renderTable(ws){
   const body = shown.map(w => {
     const i = ws.indexOf(w);
     const open = openWeeks.has(w.no);
-    const rows = PRODUCTS.map(p => ({ p, r: w.rows.find(x => x.product === p.name) }))
+    const rows = productsByRecent().map(p => ({ p, r: w.rows.find(x => x.product === p.name) }))
                          .filter(x => x.r);
     const S = rows.reduce((a,{r}) => ({
       c:a.c+r.count, m:a.m+r.amount, rc:a.rc+(r.refunds||0), ra:a.ra+refAmt(r),
       nc:a.nc+netCnt(r), na:a.na+netAmt(r)
     }), {c:0,m:0,rc:0,ra:0,nc:0,na:0});
     let cumNet = 0;
-    PRODUCTS.forEach(p => { const c = cumAt(p, ws, i); if(c) cumNet += c.netGross; });
+    productsByRecent().forEach(p => { const c = cumAt(p, ws, i); if(c) cumNet += c.netGross; });
 
     const head = `<tr class="wkrow${open?" open":""}" data-no="${w.no}" tabindex="0" role="button"
         aria-expanded="${open}">
