@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OGQ 이모티콘 판매현황</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#181722; --ink-60:#5a5866; --ink-35:#93909f;
@@ -14,8 +17,8 @@
   html,body{margin:0;padding:0}
   body{
     background:var(--paper); color:var(--ink);
-    font-family:"Pretendard","Pretendard Variable",-apple-system,BlinkMacSystemFont,
-      "Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+    font-family:"Nanum Gothic","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",
+      -apple-system,BlinkMacSystemFont,system-ui,sans-serif;
     font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
   }
   .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
@@ -281,6 +284,42 @@ const PRODUCTS = [
 ];
 
 const RECORDS = [
+  { start:"2026-04-23", end:"2026-04-29", product:"[움티] 고덜락",
+    count:163, amount:489000, buyers:62, refunds:3 },
+  { start:"2026-04-30", end:"2026-05-06", product:"[움티] 고덜락",
+    count:45,  amount:135000, buyers:23, refunds:0 },
+  { start:"2026-05-07", end:"2026-05-13", product:"[움티] 고덜락",
+    count:91,  amount:273000, buyers:21, refunds:0 },
+  { start:"2026-05-14", end:"2026-05-20", product:"[움티] 고덜락",
+    count:24,  amount:72000,  buyers:16, refunds:0 },
+  { start:"2026-05-21", end:"2026-05-27", product:"[움티] 고덜락",
+    count:112, amount:336000, buyers:22, refunds:0 },
+  { start:"2026-05-28", end:"2026-06-03", product:"[움티] 고덜락",
+    count:30,  amount:90000,  buyers:10, refunds:0 },
+  { start:"2026-06-04", end:"2026-06-10", product:"[움티] 고덜락",
+    count:10,  amount:30000,  buyers:5,  refunds:0 },
+  { start:"2026-06-11", end:"2026-06-17", product:"[움티] 고덜락",
+    count:7,   amount:20500,  buyers:6,  refunds:0 },
+  { start:"2026-06-18", end:"2026-06-24", product:"[움티] 고덜락",
+    count:5,   amount:14500,  buyers:5,  refunds:0 },
+  { start:"2026-06-18", end:"2026-06-24", product:"[움티] 나락입니다만?",
+    count:259, amount:776000, buyers:98, refunds:5 },
+  { start:"2026-06-25", end:"2026-07-01", product:"[움티] 고덜락",
+    count:5,   amount:15000,  buyers:5,  refunds:0 },
+  { start:"2026-06-25", end:"2026-07-01", product:"[움티] 나락입니다만?",
+    count:47,  amount:141000, buyers:21, refunds:1 },
+  { start:"2026-07-02", end:"2026-07-08", product:"[움티] 고덜락",
+    count:5,   amount:15000,  buyers:5,  refunds:1 },
+  { start:"2026-07-02", end:"2026-07-08", product:"[움티] 나락입니다만?",
+    count:3,   amount:9000,   buyers:3,  refunds:0 },
+  { start:"2026-07-09", end:"2026-07-15", product:"[움티] 고덜락",
+    count:25,  amount:74500,  buyers:11, refunds:0 },
+  { start:"2026-07-09", end:"2026-07-15", product:"[움티] 나락입니다만?",
+    count:26,  amount:78000,  buyers:7,  refunds:0 },
+  { start:"2026-07-16", end:"2026-07-22", product:"[움티] 고덜락",
+    count:4,   amount:12000,  buyers:2,  refunds:0 },
+  { start:"2026-07-16", end:"2026-07-22", product:"[움티] 나락입니다만?",
+    count:4,   amount:12000,  buyers:2,  refunds:0 },
   { start:"2026-07-23", end:"2026-07-29", product:"[움티] 고덜락",
     count:2,   amount:6000,   buyers:2,  refunds:1 },
   { start:"2026-07-23", end:"2026-07-29", product:"[움티] 나락입니다만?",
@@ -355,16 +394,20 @@ function cumAt(p, ws, idx){
   if(!joined(p, ws[idx])) return null;
   const base = { count:p.baseCount, amount:p.baseAmount, refunds:p.baseRefunds||0 };
   let c=base.count, a=base.amount, nc=netCnt(base), na=netAmt(base);
-  for(let i=0;i<=idx;i++)
+  for(let i=0;i<=idx;i++){
+    if(ws[i].end <= p.baseDate) continue; // baseDate 이전 주는 baseCount에 이미 포함 — 중복 합산 방지
     ws[i].rows.filter(r=>r.product===p.name).forEach(r=>{
       c+=r.count; a+=r.amount; nc+=netCnt(r); na+=netAmt(r); });
+  }
   return { count:c, gross:a, netCount:nc, netGross:na, net:na*RATE };
 }
 function cumBuyers(p, ws, idx){
   if(!joined(p, ws[idx])) return null;
   let n = p.baseBuyers || 0, seen = false;
-  for(let i=0;i<=idx;i++)
+  for(let i=0;i<=idx;i++){
+    if(ws[i].end <= p.baseDate) continue;
     ws[i].rows.filter(r=>r.product===p.name).forEach(r=>{ n += r.buyers||0; seen = true; });
+  }
   return (seen || p.baseBuyers) ? n : null;
 }
 
@@ -510,11 +553,18 @@ function renderChart(ws){
   const vals = mine.map(w=>mval(w.rows.find(r=>r.product===p.name)));
   const refs = mine.map(w=>{ const r=w.rows.find(x=>x.product===p.name);
     return metric==="amount"?refAmt(r):(r.refunds||0); });
-  sl.innerHTML = stats(vals, refs);
+  /* baseDate 이전(=이미 기준값에 포함된) 주차를 실제로 얼마나 채웠는지 계산해서,
+     남은 미기록분만 보여준다 — 완전히 다 채워졌으면 아예 표시하지 않음 */
+  const preWeeks = mine.filter(w=>w.end<=p.baseDate);
+  const preCountSum  = preWeeks.reduce((s,w)=>s+(w.rows.find(r=>r.product===p.name)?.count||0),0);
+  const preAmountSum = preWeeks.reduce((s,w)=>s+(w.rows.find(r=>r.product===p.name)?.amount||0),0);
+  const remain = metric==="amount" ? p.baseAmount-preAmountSum : p.baseCount-preCountSum;
+  const pre = remain > 0 ? remain : 0;
+  sl.innerHTML = stats(vals, refs, pre, p.baseDate);
   box.innerHTML = singleBars(mine, p);
 }
 
-function stats(vals, refs){
+function stats(vals, refs, pre, preDate){
   const sum = vals.reduce((a,b)=>a+b,0);
   const avg = sum/vals.length;
   const max = Math.max(...vals);
@@ -527,7 +577,8 @@ function stats(vals, refs){
     + (refLast ? cell("최근 주 환불", "-"+mfmt(refLast)+munit(), 'style="color:#c8443c"') : "")
     + cell("주 평균", mfmt(avg)+munit())
     + cell("최고 주", mfmt(max)+munit())
-    + cell("기록 회차", vals.length+"회");
+    + cell("기록 회차", vals.length+"회")
+    + (pre ? cell(`~${md(preDate)} 미기록분`, mfmt(pre)+munit(), 'style="color:#93909f"') : "");
 }
 
 function emptyMsg(t,s){ return `<div class="empty"><b>${t}</b><br>${s}</div>`; }
@@ -576,23 +627,47 @@ function stackedBars(ws){
 function singleBars(ws, p){
   const {W,H,pl,pr,pt,pb}=CH, iw=W-pl-pr, ih=H-pt-pb;
   const vals = ws.map(w=>mval(w.rows.find(r=>r.product===p.name)));
-  const nice = niceMax(Math.max(...vals,1));
+  const sorted = [...vals].sort((a,b)=>b-a);
+  const max = sorted[0]||0, second = sorted.find(v=>v<max) ?? 0;
+  const isOutlier = max>0 && (second===0 ? max>0 : max > second*3);
+  const nice = niceMax(Math.max(isOutlier ? second : max, 1));
   const step = iw/ws.length, bw = Math.min(52, step*0.55);
   let g = grid(nice);
   ws.forEach((w,i)=>{
     const cx = pl+step*i+step/2, v = vals[i];
-    const h = ih*v/nice, y = pt+ih-h;
-    g += `<rect x="${cx-bw/2}" y="${y}" width="${bw}" height="${Math.max(h,1)}" fill="${p.color}" rx="2">
-            <title>${w.no}회차 · ${mfmt(v)}${munit()}</title></rect>
-          <text x="${cx}" y="${y-7}" text-anchor="middle" font-size="11" font-weight="700"
-            fill="#181722">${mfmt(v)}</text>` + xlab(cx,w);
+    const capped = isOutlier && v>nice;
+    const h = capped ? ih : ih*v/nice, y = pt+ih-h;
+    g += `<rect x="${cx-bw/2}" y="${y}" width="${bw}" height="${Math.max(h,1)}" fill="${p.color}" rx="2"
+            ${capped?'opacity="0.55"':''}>
+            <title>${w.no}회차 · ${mfmt(v)}${munit()}${capped?' (그래프 축 초과, 실제값 표시)':''}</title></rect>`;
+    if(capped){
+      /* 절단 표시: 막대 상단 근처에 지그재그 브레이크 마크 */
+      const by = pt+14;
+      g += `<path d="M${cx-bw/2-2},${by} l6,-5 l6,10 l6,-10 l6,10 l${bw/2-14},0"
+              fill="none" stroke="#fff" stroke-width="2"/>
+            <path d="M${cx-bw/2-2},${by+4} l6,-5 l6,10 l6,-10 l6,10 l${bw/2-14},0"
+              fill="none" stroke="${p.color}" stroke-width="1.5" opacity=".8"/>
+            <text x="${cx}" y="${by+26}" text-anchor="middle" font-size="11" font-weight="700"
+              fill="#181722">${mfmt(v)}</text>`;
+    } else {
+      g += `<text x="${cx}" y="${y-7}" text-anchor="middle" font-size="11" font-weight="700"
+              fill="#181722">${mfmt(v)}</text>`;
+    }
+    g += xlab(cx,w);
   });
   if(vals.length>1){
-    const pts = ws.map((w,i)=>`${pl+step*i+step/2},${pt+ih-ih*vals[i]/nice}`).join(" ");
+    const pts = ws.map((w,i)=>{
+      const v=vals[i], capped=isOutlier && v>nice;
+      const y = capped ? pt : pt+ih-ih*v/nice;
+      return `${pl+step*i+step/2},${y}`;
+    }).join(" ");
     g += `<polyline points="${pts}" fill="none" stroke="${p.color}" stroke-width="1.5"
             stroke-dasharray="4 3" opacity=".55"/>`;
   }
-  return svg(g+axis());
+  const note = isOutlier
+    ? `<div style="font-size:11px;color:#93909f;margin-top:4px">※ 축을 넘는 값은 막대를 잘라 표시하고, 실제 숫자는 막대 위쪽에 함께 표기했습니다</div>`
+    : "";
+  return svg(g+axis()) + note;
 }
 
 /* ---------------------------------------------- table */
