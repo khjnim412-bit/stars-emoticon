@@ -94,6 +94,7 @@
   td.wk b{display:block;font-size:13.5px}
   td.wk span{display:block;font-size:11px;color:var(--ink-35);margin-top:2px}
   td.pn,th.pn{text-align:left}
+  #tblBox th:nth-child(3),#tblBox td:nth-child(3){text-align:left;padding-left:18px}
   .pn{display:inline-flex;align-items:center;gap:7px}
   .note{font-size:11.5px;color:#93909f;margin-top:2px;font-style:italic}
   .swatch{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
@@ -134,6 +135,8 @@
   #editSection,#editBadge{display:none}
   body.edit #editSection{display:block}
   body.edit #editBadge{display:block}
+  #btnExport{display:none}
+  body.edit #btnExport{display:inline-flex}
   .badge{margin:-14px 0 22px;padding:9px 13px;border-radius:9px;background:#fff5d6;
     border:1px solid #f0dfa0;font-size:12px;color:#7a6420}
 
@@ -141,6 +144,20 @@
   .pblock{margin-top:18px}
   .pblock h3{margin:0 0 6px;font-size:13px;font-weight:750;letter-spacing:-.01em}
   .pblock .plegend{font-size:11px;color:var(--ink-35);margin:0 0 4px}
+
+
+  /* 주간 요약 내보내기 */
+  #expDlg{border:0;border-radius:16px;padding:22px 24px;max-width:1040px;width:calc(100% - 32px);
+    box-shadow:0 20px 60px rgba(24,23,34,.28);color:var(--ink);font:inherit}
+  #expDlg::backdrop{background:rgba(24,23,34,.45)}
+  #expDlg .xh{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  #expDlg .xh b{font-size:16px;margin-right:auto}
+  #expDlg select{width:auto;min-width:180px}
+  #expDlg canvas{width:100%;border:1px solid var(--line);border-radius:10px;display:block}
+  #expDlg label{display:block;font-size:11.5px;color:var(--ink-60);margin:14px 0 5px}
+  #expDlg textarea{width:100%;font:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:8px;resize:vertical;color:var(--ink)}
+  @media print{#expDlg,#btnExport{display:none !important}}
 
   @media print{
     #printBlock{display:block}
@@ -184,6 +201,34 @@
   </div>
   <div class="stamp" id="stamp"></div>
 </header>
+
+<dialog id="expDlg">
+  <div class="xh">
+    <b>주간 요약 내보내기</b>
+    <select id="expWeek" aria-label="회차 선택"></select>
+    <button class="btn ghost" id="expClose" style="padding:7px 14px">닫기</button>
+  </div>
+  <canvas id="expCanvas"></canvas>
+  <label for="expComment">코멘트 (선택 · 비워두면 리포트에 들어가지 않아요. 인사이트를 Confluence에 직접 쓰신다면 비워두세요)</label>
+  <textarea id="expComment" rows="3" placeholder="이번 주 인사이트를 적어주세요"></textarea>
+  <label for="expHeadline">한 줄 헤드라인 (선택 · 비워두면 리포트에 들어가지 않아요)</label>
+  <input id="expHeadline" placeholder="예: 덜덜이 출시 첫 주 92건, 기존 4종은 합계 5건으로 저조">
+  <label for="expLegacy">레거시(구작) 판매 — 한 줄에 하나씩, 예: 움직이는 백호구와 꿀잼 3건 9,000원 (대시보드 기록에는 들어가지 않아요)</label>
+  <textarea id="expLegacy" rows="4" placeholder="상품명 3건 9,000원"></textarea>
+  <label for="expLink">대시보드 링크 (리포트 하단에 표시 · 이 브라우저에 기억해둬요)</label>
+  <input id="expLink" placeholder="https://...">
+  <div class="actions">
+    <button class="btn" id="expReport">주간 리포트 저장 (HTML)</button>
+    <button class="btn ghost" id="expChartMix">그래프 이미지 · 판매 구성</button>
+    <button class="btn ghost" id="expChartFw">그래프 이미지 · 첫 주 비교</button>
+    <button class="btn ghost" id="expPng">이미지로 저장 (PNG)</button>
+    <button class="btn ghost" id="expCopy">텍스트 복사</button>
+    <span id="expMsg" style="font-size:12px;color:var(--ink-60)"></span>
+  </div>
+  <label for="expText">붙여넣기용 텍스트 (Confluence 등)</label>
+  <textarea id="expText" rows="9" readonly></textarea>
+</dialog>
+
 <div id="editBadge" class="badge">편집 모드 — 주소 끝의 <span class="mono">#edit</span>를 지우면 보고용 화면이 됩니다</div>
 
 <div class="kpis" id="kpis"></div>
@@ -197,7 +242,7 @@
   <div class="head"><h2>이전 출시 상품 · 누적</h2><p>출시 순으로 오래된 상품은 카드 대신 요약표로 표시됩니다</p></div>
   <div class="panel scroll" style="padding-top:16px">
     <table id="legacyTbl">
-      <thead><tr><th class="pn">상품</th><th>출시일</th><th>누적 판매</th><th>누적 판매액</th><th>누적 실구매자</th><th>누적 환불</th></tr></thead>
+      <thead><tr><th>상품</th><th>출시일</th><th>누적 판매</th><th>누적 판매액</th><th>누적 실구매자</th><th>누적 환불</th></tr></thead>
       <tbody id="legacyBody"></tbody>
     </table>
   </div>
@@ -208,9 +253,15 @@
   <div class="panel">
     <div class="bar">
       <div class="tabs" id="tabs" role="tablist"></div>
-      <div class="seg" id="seg">
-        <button data-metric="amount" aria-pressed="true">판매액</button>
-        <button data-metric="count" aria-pressed="false">판매건수</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="seg" id="rangeSeg">
+          <button data-range="8" aria-pressed="true">최근 8주</button>
+          <button data-range="0" aria-pressed="false">전체</button>
+        </div>
+        <div class="seg" id="seg">
+          <button data-metric="amount" aria-pressed="true">판매액</button>
+          <button data-metric="count" aria-pressed="false">판매건수</button>
+        </div>
       </div>
     </div>
     <div class="statline" id="statline"></div>
@@ -220,7 +271,7 @@
 </section>
 
 <section>
-  <div class="head"><h2>기록</h2><p id="recHint"></p></div>
+  <div class="head"><h2>기록</h2><p id="recHint"></p><button class="btn ghost" id="btnExport" style="margin-left:auto;padding:6px 12px;font-size:12px">이번 주 요약 내보내기</button></div>
   <div class="panel scroll" style="padding-top:16px"><div id="tblBox"></div></div>
 </section>
 
@@ -281,7 +332,9 @@ const PRODUCTS = [
   { name:"[움티] 지글지글 꿀잼", launch:"2026-07-23", color:"#E39A2C",
     baseDate:"2026-07-22", baseCount:0,   baseAmount:0, baseRefunds:0, baseBuyers:0 },
   { name:"[움티] 백호구의 매니저 생활", launch:"2026-08-27", color:"#3B8FD1",
-    baseDate:"2026-08-26", baseCount:0,   baseAmount:0, baseRefunds:0, baseBuyers:0 }
+    baseDate:"2026-08-26", baseCount:0,   baseAmount:0, baseRefunds:0, baseBuyers:0 },
+  { name:"[움티]ㄷㄷㄷ덜덜이", launch:"2026-10-08", color:"#3DA35D",
+    baseDate:"2026-10-07", baseCount:0,   baseAmount:0, baseRefunds:0, baseBuyers:0 }
 ];
 
 const RECORDS = [
@@ -400,6 +453,16 @@ const RECORDS = [
   { start:"2026-10-01", end:"2026-10-07", product:"[움티] 나락입니다만?",
     count:1,   amount:3000,   buyers:1,  refunds:1 },
   { start:"2026-10-01", end:"2026-10-07", product:"[움티] 고덜락",
+    count:0,   amount:0,      buyers:0,  refunds:0 },
+  { start:"2026-10-08", end:"2026-10-14", product:"[움티]ㄷㄷㄷ덜덜이",
+    count:92,  amount:275500, buyers:66, refunds:0 },
+  { start:"2026-10-08", end:"2026-10-14", product:"[움티] 고덜락",
+    count:2,   amount:6000,   buyers:2,  refunds:0 },
+  { start:"2026-10-08", end:"2026-10-14", product:"[움티] 백호구의 매니저 생활",
+    count:2,   amount:6000,   buyers:2,  refunds:0 },
+  { start:"2026-10-08", end:"2026-10-14", product:"[움티] 나락입니다만?",
+    count:1,   amount:3000,   buyers:1,  refunds:0 },
+  { start:"2026-10-08", end:"2026-10-14", product:"[움티] 지글지글 꿀잼",
     count:0,   amount:0,      buyers:0,  refunds:0 }
 ];
 /* DATA-END */
@@ -421,6 +484,7 @@ let tab = "all";       // "all" | 상품명
 let metric = "amount"; // "amount" | "count"
 let openWeeks = null;   // 펼친 회차 (null이면 최신 회차만)
 let showAllWeeks = false;
+let range = 8;        // 그래프 표시 범위: 8 = 최근 8주, 0 = 전체
 let history = [];
 
 function weeks(){
@@ -483,6 +547,11 @@ function render(){
   const hasPrev = ws.length>1;
   if(hasPrev) ws[li-1].rows.forEach(r=>{ pc+=netCnt(r); pa+=netAmt(r); });
   const d=(n,p)=> (hasPrev&&p>0)? n/p-1 : null;
+  /* 신규 출시가 낀 주는 %가 의미 없으므로(예: +1285%) 증감 수치만 보여주고 출시 포함을 알린다 */
+  const hasLaunch = !!last && PRODUCTS.some(p=>p.launch>=last.start && p.launch<=last.end);
+  const launchTxt = (n,pv,u)=>{ const diff=n-pv;
+    return {t:(diff>=0?"▲ ":"▼ ")+(u==="원"?won(Math.abs(diff)):cnt(Math.abs(diff)))+u+" · 신규 출시 포함", c:diff>=0?"up":"down"}; };
+  const over = (hasLaunch&&hasPrev) ? [launchTxt(wc,pc,"건"), launchTxt(wa,pa,"원")] : [null,null];
   const kpi=[
     ["이번 주 판매건수",cnt(wc),"건",d(wc,pc),"직전 회차 없음",
       wrc?`환불 ${cnt(wrc)}건 차감`:""],
@@ -492,12 +561,14 @@ function render(){
       crc?`환불 ${cnt(crc)}건 차감`:""],
     ["누적 판매액",won(ca),"원",null,"출시일부터 전체",""]
   ];
-  document.getElementById("kpis").innerHTML = kpi.map(([l,v,u,dd,alt,sub])=>`
+  document.getElementById("kpis").innerHTML = kpi.map(([l,v,u,dd,alt,sub],i)=>{
+    const ov = over[i] || null;
+    return `
     <div class="kpi"><div class="lab">${l}</div>
       <div class="val num">${v}<small>${u}</small></div>
       <div class="subnet">${sub||"&nbsp;"}</div>
-      <div class="delta ${dd==null?"":(dd>=0?"up":"down")}">${dd==null?alt:pctTxt(dd)+" 직전 회차 대비"}</div>
-    </div>`).join("");
+      <div class="delta ${ov ? ov.c : (dd==null?"":(dd>=0?"up":"down"))}">${ov ? ov.t : (dd==null?alt:pctTxt(dd)+" 직전 회차 대비")}</div>
+    </div>`; }).join("");
 
   /* 상품 카드 — 출시일 최신 3종만 카드로, 나머지는 아래 요약표로 */
   const byRecent = productsByRecent();
@@ -570,6 +641,10 @@ function renderTabs(){
     b.setAttribute("aria-pressed", String(metric===b.dataset.metric));
     b.onclick = ()=>{ metric=b.dataset.metric; render(); };
   });
+  document.querySelectorAll("#rangeSeg button").forEach(b=>{
+    b.setAttribute("aria-pressed", String(range===+b.dataset.range));
+    b.onclick = ()=>{ range=+b.dataset.range; render(); };
+  });
 }
 
 function renderChart(ws){
@@ -579,7 +654,7 @@ function renderChart(ws){
     const refs = ws.map(w=>w.rows.reduce((s,r)=>s+(metric==="amount"?refAmt(r):(r.refunds||0)),0));
     sl.innerHTML = ws.length ? stats(vals, refs) : "";
     box.innerHTML = ws.length
-      ? stackedBars(ws)
+      ? stackedBars(range ? ws.slice(-range) : ws) + rangeNote(ws.length)
       : emptyMsg("아직 기록이 없습니다.", "아래 <b>주차 추가</b>에서 첫 주차를 넣어보세요.");
     return;
   }
@@ -604,7 +679,13 @@ function renderChart(ws){
   const remain = metric==="amount" ? p.baseAmount-preAmountSum : p.baseCount-preCountSum;
   const pre = remain > 0 ? remain : 0;
   sl.innerHTML = stats(vals, refs, pre, p.baseDate);
-  box.innerHTML = singleBars(mine, p);
+  box.innerHTML = singleBars(range ? mine.slice(-range) : mine, p) + rangeNote(mine.length);
+}
+
+function rangeNote(total){
+  return (range && total>range)
+    ? `<div style="font-size:11px;color:#93909f;margin-top:4px">최근 ${range}회차만 표시 중 (전체 ${total}회차) · 위 요약 수치는 전체 기간 기준입니다</div>`
+    : "";
 }
 
 function stats(vals, refs, pre, preDate){
@@ -714,7 +795,7 @@ function singleBars(ws, p){
 }
 
 /* ---------------------------------------------- table */
-const PAGE = 6;   // 기본으로 보여줄 회차 수
+const PAGE = 8;   // 기본으로 보여줄 회차 수
 
 function renderTable(ws){
   const box  = document.getElementById("tblBox");
@@ -1004,6 +1085,516 @@ function applyMode(){
   if(typeof document.body !== "undefined" && document.body && document.body.classList)
     document.body.classList.toggle("edit", edit);
 }
+
+/* ---------------------------------------------- 주간 요약 내보내기 */
+const EXP_FONT = '"Nanum Gothic","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",sans-serif';
+let expIdx = -1;
+
+function expData(wi){
+  const ws = weeks(), w = ws[wi], pw = wi>0 ? ws[wi-1] : null;
+  const rows = productsByRecent().map(p => ({ p, r: w.rows.find(x=>x.product===p.name) }))
+    .filter(x=>x.r).map(({p,r}) => {
+      const pr = pw ? pw.rows.find(x=>x.product===p.name) : null;
+      const isNew = !pr && p.launch >= w.start && p.launch <= w.end;
+      const c = cumAt(p, ws, wi);
+      return { p, r, pr, isNew, cum: c ? c.netGross : null };
+    });
+  const sum = (arr,f)=>arr.reduce((a,x)=>a+f(x),0);
+  const tot = { count:sum(rows,x=>x.r.count), amount:sum(rows,x=>x.r.amount), refunds:sum(rows,x=>x.r.refunds||0) };
+  const ptot = pw ? { count:sum(pw.rows,r=>r.count), amount:sum(pw.rows,r=>r.amount) } : null;
+  return { ws, w, pw, rows, tot, ptot };
+}
+function expDelta(x){
+  if(x.isNew) return "신규 출시";
+  if(!x.pr) return "–";
+  const d = x.r.count - x.pr.count;
+  return d===0 ? "변동 없음" : (d>0 ? "▲ " : "▼ ") + cnt(Math.abs(d)) + "건";
+}
+function expPct(d){
+  /* 전주 대비 증감: 신규 출시가 낀 주는 %가 의미 없으므로 건수 차이만 표시 */
+  if(!d.ptot) return "";
+  const diff = d.tot.count - d.ptot.count;
+  const hasNew = d.rows.some(x=>x.isNew);
+  let t = diff===0 ? "변동 없음" : (diff>0?"▲ ":"▼ ") + cnt(Math.abs(diff)) + "건";
+  if(!hasNew && d.ptot.count>0 && diff!==0){
+    const v = Math.round((d.tot.count/d.ptot.count-1)*100);
+    t += ` (${v>0?"+":""}${v}%)`;
+  }
+  return t;
+}
+function expDefaultComment(d){
+  return d.rows.filter(x=>x.r.note)
+    .map(x=>x.p.name.replace(/^\[움티\]\s*/,"") + ": " + x.r.note).join("\n");
+}
+function expTextOut(d, comment){
+  const L = [];
+  L.push(`[OGQ 움티 주간 판매 현황] ${d.w.no}회차 (${md(d.w.start)}~${md(d.w.end)})`);
+  const pct = expPct(d);
+  L.push(`■ 합계: ${cnt(d.tot.count)}건 / ${won(d.tot.amount)}원` +
+         (d.tot.refunds?` (환불 ${d.tot.refunds}건)`:"") + (pct?` · 전주 대비 ${pct}`:""));
+  L.push("■ 상품별");
+  d.rows.forEach(x=>{
+    L.push(`- ${x.p.name}: ${cnt(x.r.count)}건 / ${won(x.r.amount)}원 / 실구매자 ${cnt(x.r.buyers||0)}명` +
+      (x.r.refunds?` (환불 ${x.r.refunds}건)`:"") + ` · ${expDelta(x)}`);
+  });
+  if(comment && comment.trim()){ L.push("■ 코멘트"); L.push(comment.trim()); }
+  return L.join("\n");
+}
+
+function expWrap(ctx, text, maxW){
+  const out = [];
+  String(text).split("\n").forEach(par=>{
+    let line = "";
+    for(const ch of par){
+      if(line && ctx.measureText(line+ch).width > maxW){ out.push(line); line = ch; } else line += ch;
+    }
+    out.push(line);
+  });
+  return out;
+}
+
+async function expDraw(){
+  const d = expData(expIdx);
+  const comment = document.getElementById("expComment").value.trim();
+  document.getElementById("expText").value = expTextOut(d, comment);
+
+  try{
+    await document.fonts.load(`400 14px "Nanum Gothic"`);
+    await document.fonts.load(`700 14px "Nanum Gothic"`);
+    await document.fonts.load(`800 14px "Nanum Gothic"`);
+  }catch(e){}
+
+  const cv = document.getElementById("expCanvas"), ctx = cv.getContext("2d");
+  const W = 1000, PAD = 36, SC = 2;
+  const INK="#181722", INK60="#5a5866", INK35="#93909f", LINE="#e9e7f0", RED="#c8443c", GRN="#1c8a5c";
+  const F = (w,sz)=>`${w} ${sz}px ${EXP_FONT}`;
+
+  /* 높이 계산 */
+  ctx.font = F(400,14);
+  const cLines = comment ? expWrap(ctx, comment, W-PAD*2-32) : [];
+  const ROW = 46;
+  const H = 96 + 112 + 44 + ROW*d.rows.length + ROW + (cLines.length ? 30 + cLines.length*23 + 36 : 0) + 56;
+  cv.width = W*SC; cv.height = H*SC;
+  ctx.setTransform(SC,0,0,SC,0,0);
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);
+  ctx.textBaseline="alphabetic";
+
+  const T = (str,x,y,o={})=>{ ctx.font=F(o.w||400,o.s||14); ctx.fillStyle=o.c||INK; ctx.textAlign=o.a||"left"; ctx.fillText(str,x,y); };
+  const HL = (y,c=LINE,w=1)=>{ ctx.strokeStyle=c; ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(PAD,y); ctx.lineTo(W-PAD,y); ctx.stroke(); };
+
+  /* 헤더 */
+  T("OGQ 움티 주간 판매 현황", PAD, 52, {w:800, s:26});
+  T(`${d.w.no}회차  ·  ${md(d.w.start)} – ${md(d.w.end)}`, W-PAD, 52, {w:700, s:16, c:INK60, a:"right"});
+  HL(70, INK, 2);
+
+  /* KPI */
+  const pct = expPct(d);
+  const ky = 96;
+  const kpi = [
+    ["이번 주 판매건수", cnt(d.tot.count)+"건", pct ? `전주 대비 ${pct}` : "", pct.startsWith("▼") ? RED : pct.startsWith("▲") ? GRN : INK35],
+    ["이번 주 판매액", won(d.tot.amount)+"원", d.ptot ? `전주 ${won(d.ptot.amount)}원` : "", INK35],
+    ["환불", d.tot.refunds ? d.tot.refunds+"건" : "없음", "", INK35],
+  ];
+  const kw = (W-PAD*2-24)/3;
+  kpi.forEach((k,i)=>{
+    const x = PAD + i*(kw+12);
+    ctx.fillStyle="#f6f5fa"; ctx.beginPath(); ctx.roundRect(x, ky, kw, 92, 12); ctx.fill();
+    T(k[0], x+18, ky+28, {s:12, c:INK60});
+    T(k[1], x+18, ky+62, {w:800, s:26});
+    if(k[2]) T(k[2], x+kw-18, ky+62, {w:700, s:12.5, c:k[3], a:"right"});
+  });
+
+  /* 표 */
+  let y = ky + 92 + 34;
+  const col = { name:PAD, cnt:520, amt:640, buy:740, dlt:850, cum:W-PAD };
+  T("상품", col.name, y, {w:700,s:12,c:INK60});
+  T("판매건수", col.cnt, y, {w:700,s:12,c:INK60,a:"right"});
+  T("판매액", col.amt, y, {w:700,s:12,c:INK60,a:"right"});
+  T("실구매자", col.buy, y, {w:700,s:12,c:INK60,a:"right"});
+  T("전주 대비", col.dlt, y, {w:700,s:12,c:INK60,a:"right"});
+  T("누적 순판매액", col.cum, y, {w:700,s:12,c:INK60,a:"right"});
+  y += 10; HL(y, INK, 1.5);
+
+  d.rows.forEach(x=>{
+    const cy = y + ROW/2 + 5;
+    ctx.fillStyle = x.p.color; ctx.beginPath(); ctx.roundRect(col.name, cy-11, 11, 11, 3); ctx.fill();
+    T(x.p.name, col.name+20, cy, {w:700,s:14});
+    T(cnt(x.r.count)+(x.r.refunds?`  (환불 ${x.r.refunds})`:""), col.cnt, cy, {w:700,s:14,a:"right"});
+    T(won(x.r.amount), col.amt, cy, {s:14,a:"right"});
+    T(cnt(x.r.buyers||0), col.buy, cy, {s:14,a:"right"});
+    const dl = expDelta(x);
+    const dc = dl.startsWith("▲")||dl==="신규 출시" ? GRN : dl.startsWith("▼") ? RED : INK35;
+    T(dl, col.dlt, cy, {w:700,s:13,c:dc,a:"right"});
+    T(x.cum==null?"–":won(x.cum), col.cum, cy, {s:14,c:x.p.color,w:700,a:"right"});
+    y += ROW; HL(y);
+  });
+
+  /* 합계 */
+  const ty = y + ROW/2 + 5;
+  T("합계", col.name, ty, {w:800,s:14});
+  T(cnt(d.tot.count), col.cnt, ty, {w:800,s:14,a:"right"});
+  T(won(d.tot.amount), col.amt, ty, {w:800,s:14,a:"right"});
+  T(cnt(d.rows.reduce((a,x)=>a+(x.r.buyers||0),0)), col.buy, ty, {w:800,s:14,a:"right"});
+  y += ROW; HL(y, INK, 1.5);
+
+  /* 코멘트 */
+  if(cLines.length){
+    y += 28;
+    const bh = cLines.length*23 + 28;
+    ctx.fillStyle="#f6f5fa"; ctx.beginPath(); ctx.roundRect(PAD, y, W-PAD*2, bh, 12); ctx.fill();
+    ctx.fillStyle=INK; ctx.fillRect(PAD, y+14, 3, bh-28);
+    cLines.forEach((ln,i)=> T(ln, PAD+20, y+30+i*23, {s:14}));
+    y += bh;
+  }
+
+  /* 푸터 */
+  T("※ 판매건수·판매액은 환불 차감 전 기준이며, 누적 순판매액은 환불 차감 후 누적입니다 · 출처: OGQ 마켓 판매 분석", PAD, H-22, {s:11, c:INK35});
+}
+
+function expOpen(){
+  const ws = weeks(); if(!ws.length) return;
+  const sel = document.getElementById("expWeek");
+  sel.innerHTML = ws.map((w,i)=>`<option value="${i}">${w.no}회차 · ${md(w.start)}–${md(w.end)}</option>`).reverse().join("");
+  expIdx = ws.length-1; sel.value = String(expIdx);
+  document.getElementById("expComment").value = "";
+  document.getElementById("expHeadline").value = "";
+  document.getElementById("expLegacy").value = "";
+  document.getElementById("expMsg").textContent = "";
+  document.getElementById("expDlg").showModal();
+  expDraw();
+}
+function expMsg(t){ const m=document.getElementById("expMsg"); m.textContent=t; setTimeout(()=>{ if(m.textContent===t) m.textContent=""; },2500); }
+
+document.getElementById("btnExport").addEventListener("click", expOpen);
+document.getElementById("expClose").addEventListener("click", ()=>document.getElementById("expDlg").close());
+document.getElementById("expWeek").addEventListener("change", e=>{
+  expIdx = +e.target.value;
+  document.getElementById("expComment").value = "";
+  document.getElementById("expHeadline").value = "";
+  document.getElementById("expLegacy").value = "";
+  expDraw();
+});
+document.getElementById("expComment").addEventListener("input", ()=>expDraw());
+document.getElementById("expPng").addEventListener("click", ()=>{
+  const d = expData(expIdx);
+  document.getElementById("expCanvas").toBlob(b=>{
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = `움티_주간판매_${d.w.no}회차_${d.w.end}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    expMsg("이미지를 저장했어요");
+  }, "image/png");
+});
+document.getElementById("expCopy").addEventListener("click", async ()=>{
+  const ta = document.getElementById("expText");
+  try{ await navigator.clipboard.writeText(ta.value); expMsg("복사했어요"); }
+  catch(e){ ta.select(); document.execCommand("copy"); expMsg("복사했어요"); }
+});
+
+
+/* ---------------------------------------------- 주간 리포트(HTML) 생성 */
+function expName(n){ return expEsc(n).replace(/^\[움티\]\s*/, '<span class="pre">[움티] </span>'); }
+function expRich(t){ return expEsc(t).replace(/(\d[\d,.]*\s?(?:건|원|명|%))/g,'<b>$1</b>'); }
+function expEsc(t){ return String(t).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function expParseLegacy(text){
+  const out = [], bad = [];
+  String(text||"").split("\n").map(x=>x.trim().replace(/^[-•·]\s*/,"")).filter(Boolean).forEach(line=>{
+    const m = line.match(/^(.*?)[\s,\t:]+(\d[\d,]*)\s*건[\s,\t/]*(\d[\d,]*)\s*원?/)
+           || line.match(/^(.*?)[\t,]+\s*(\d[\d,]*)[\t,]+\s*(\d[\d,]*)\s*원?$/);
+    if(m) out.push({ name:m[1].trim(), count:+m[2].replace(/,/g,""), amount:+m[3].replace(/,/g,"") });
+    else bad.push(line);
+  });
+  return { out, bad };
+}
+
+/* 출시 첫 주 비교 — 순판매(환불 차감) 기준, 해당 회차까지 출시된 상품만 */
+function expFirstWeeks(d){
+  return PRODUCTS.filter(p=>p.launch <= d.w.end).map(p=>{
+    const r = RECORDS.find(x=>x.product===p.name && x.start===p.launch);
+    return r ? { p, count:netCnt(r), amount:netAmt(r), buyers:r.buyers||0, current: p.launch>=d.w.start && p.launch<=d.w.end } : null;
+  }).filter(Boolean).sort((a,b)=>b.count-a.count);
+}
+
+const REPORT_CSS = `
+  :root{--ink:#181722;--ink-60:#5a5866;--ink-35:#93909f;--paper:#f4f3f7;--card:#fff;--line:#e4e2ec;--r:14px}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);
+    font-family:"Nanum Gothic","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 22px 70px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding-bottom:18px;
+    border-bottom:2px solid var(--ink);margin-bottom:22px;flex-wrap:wrap}
+  h1{margin:0;font-size:29px;font-weight:800;letter-spacing:-.035em}
+  .sub{margin:6px 0 0;color:var(--ink-60);font-size:13px}
+  .stamp{text-align:right;font-size:12px;color:var(--ink-60);line-height:1.7}
+  .stamp b{display:block;font-size:19px;color:var(--ink);letter-spacing:-.02em}
+  .headline{background:var(--ink);color:#fff;border-radius:var(--r);padding:16px 20px;font-size:16px;font-weight:800;letter-spacing:-.02em;margin-bottom:12px}
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .kpi{background:var(--card);border-radius:var(--r);padding:16px 18px 18px;border:1px solid var(--line)}
+  .kpi .lab{font-size:11.5px;color:var(--ink-60);letter-spacing:.04em;margin-bottom:8px}
+  .kpi .val{font-size:26px;font-weight:800;letter-spacing:-.04em;line-height:1.1;white-space:nowrap}
+  .kpi .val small{font-size:14px;font-weight:600;color:var(--ink-35);margin-left:2px}
+  .kpi .delta{font-size:12px;margin-top:5px;color:var(--ink-35)}
+  .up{color:#1c8a5c}.down{color:#c8443c}
+  section{margin-top:28px}
+  .head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .head h2{margin:0;font-size:15px;font-weight:750;letter-spacing:-.01em}
+  .head p{margin:0;font-size:12px;color:var(--ink-35)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:6px 20px 16px}
+  .insight{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 20px 16px 22px;position:relative}
+  .insight:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;background:var(--ink);border-radius:0 3px 3px 0}
+  .insight ul{margin:0;padding-left:18px}.insight li{margin:5px 0;line-height:1.65}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:11px 10px;text-align:right;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-size:11px;color:var(--ink-60);font-weight:700;border-bottom:1.5px solid var(--ink)}
+  tbody tr{border-bottom:1px solid var(--line)}tbody tr:last-child{border-bottom:0}
+  tfoot td{border-top:1.5px solid var(--ink);font-weight:800}
+  .pn{display:inline-flex;align-items:center;gap:7px;font-weight:700}
+  .swatch{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+  .rf{color:#c8443c}.dim{color:var(--ink-35)}
+  .fw{padding:8px 22px 8px}
+  .fwrow{display:grid;grid-template-columns:230px minmax(0,1fr) 230px;gap:16px;align-items:center;padding:10px 0;min-height:52px}
+  .fwrow + .fwrow{border-top:1px dashed var(--line)}
+  .fwname{font-size:13px;font-weight:700;line-height:1.35;white-space:nowrap}
+  .fwname small{display:block;font-weight:400;font-size:11px;color:var(--ink-35)}
+  .track{height:16px;background:#f0eff5;border-radius:6px;overflow:hidden}
+  .fill{height:100%;border-radius:6px}
+  .fwval{text-align:right;font-size:12.5px;color:var(--ink-60);white-space:nowrap}.fwval b{color:var(--ink);font-size:14px}
+  .tag{display:inline-block;white-space:nowrap;font-size:10.5px;font-weight:800;background:var(--ink);color:#fff;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+
+  .mixbar{display:flex;height:38px;border-radius:9px;overflow:hidden;gap:2px;margin:14px 0 14px}
+  .mixbar div{display:flex;align-items:center;padding:0 12px;color:#fff;font-weight:800;font-size:13px;white-space:nowrap;min-width:3px}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 22px;padding-bottom:4px}
+  .legend span{font-size:12.5px;color:var(--ink-60);display:inline-flex;align-items:center;gap:7px}
+  .legend b{color:var(--ink)}
+  .cumcol{color:var(--ink-60);font-weight:400}
+  .note2{font-size:11.5px;color:var(--ink-35);margin:8px 2px 0}
+  .foot{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-35);line-height:1.8}
+  .foot a{color:var(--ink-60)}
+  @media (max-width:720px){
+    .kpis{grid-template-columns:repeat(2,1fr)}.fwrow{grid-template-columns:1fr;gap:4px}.fwval{text-align:left}
+    header{align-items:flex-start}.stamp{text-align:left}.stamp b{display:none}
+    .panel{padding:6px 12px 14px}
+    table{font-size:12px}th,td{padding:9px 5px}
+    td:first-child{white-space:normal}.pn{white-space:normal;align-items:flex-start}.pn .swatch{margin-top:4px}
+    table.main th:nth-child(4),table.main td:nth-child(4),table.main th:nth-child(6),table.main td:nth-child(6){display:none}
+    .fw{padding:6px 14px 6px}
+    .pre{display:none}
+  }
+  @media print{body{background:#fff}.wrap{max-width:none;padding:0}section,.kpi,.panel,.insight{break-inside:avoid}}
+`;
+
+function reportHtml(d, o){
+  const pctUp = s => s.startsWith("▲") ? "up" : s.startsWith("▼") ? "down" : "";
+  const dTot = expPct(d);
+  const buyers = d.rows.reduce((a,x)=>a+(x.r.buyers||0),0);
+  const fw = expFirstWeeks(d), fwMax = Math.max(...fw.map(x=>x.count),1);
+  const leg = o.legacy || [];
+  const legTot = leg.reduce((a,x)=>({c:a.c+x.count,m:a.m+x.amount}),{c:0,m:0});
+  const lines = (o.comment||"").split("\n").map(x=>x.trim()).filter(Boolean);
+  const today = new Date().toISOString().slice(0,10);
+
+  const rows = d.rows.map(x=>{
+    const dl = expDelta(x);
+    return `<tr>
+      <td><span class="pn"><i class="swatch" style="background:${x.p.color}"></i>${expName(x.p.name)}</span></td>
+      <td class="num" style="font-size:15px"><b>${cnt(x.r.count)}</b>${x.r.refunds?` <span class="rf">(환불 ${x.r.refunds})</span>`:""}</td>
+      <td class="num">${won(x.r.amount)}</td>
+      <td class="num">${cnt(x.r.buyers||0)}</td>
+      <td class="${pctUp(dl) || (dl==="신규 출시"?"up":"dim")}"><b>${dl}</b></td>
+      <td class="num cumcol">${x.cum==null?"–":won(x.cum)}</td></tr>`;
+  }).join("");
+
+  return `<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OGQ 움티 주간 판매 리포트 · ${d.w.no}회차</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<style>${REPORT_CSS}</style></head>
+<body><div class="wrap">
+<header>
+  <div><h1>OGQ 움티 주간 판매 리포트</h1>
+    <p class="sub">${d.w.no}회차 · ${md(d.w.start)} – ${md(d.w.end)} · 첫 주 비교는 환불 차감 후(순판매) 기준</p></div>
+  <div class="stamp"><b>${d.w.no}회차</b>${d.w.start} ~ ${d.w.end}</div>
+</header>
+${o.headline ? `<div class="headline">${expEsc(o.headline)}</div>` : ""}
+<div class="kpis">
+  <div class="kpi"><div class="lab">판매건수</div><div class="val num">${cnt(d.tot.count)}<small>건</small></div>
+    <div class="delta ${pctUp(dTot)}">${dTot ? "전주 대비 "+dTot : "&nbsp;"}</div></div>
+  <div class="kpi"><div class="lab">판매액</div><div class="val num">${won(d.tot.amount)}<small>원</small></div>
+    <div class="delta">${d.ptot ? "전주 "+won(d.ptot.amount)+"원" : "&nbsp;"}</div></div>
+  <div class="kpi"><div class="lab">실구매자</div><div class="val num">${cnt(buyers)}<small>명</small></div><div class="delta">&nbsp;</div></div>
+  <div class="kpi"><div class="lab">환불</div><div class="val num">${d.tot.refunds?cnt(d.tot.refunds)+"<small>건</small>":"없음"}</div><div class="delta">&nbsp;</div></div>
+</div>
+${d.tot.count>0 ? `<section><div class="head"><h2>이번 주 판매 구성</h2><p>판매건수 기준 · 상품별 비중</p></div>
+  <div class="panel" style="padding-top:2px"><div class="mixbar">${d.rows.filter(x=>x.r.count>0).map(x=>{
+      const pc = x.r.count/d.tot.count*100;
+      return `<div style="width:${pc.toFixed(2)}%;background:${x.p.color}">${pc>=14?expEsc(x.p.name.replace(/^\[움티\]\s*/,""))+" "+cnt(x.r.count)+"건 · "+Math.round(pc)+"%":""}</div>`; }).join("")}</div>
+    <div class="legend">${d.rows.map(x=>{
+      const pc = d.tot.count? x.r.count/d.tot.count*100 : 0;
+      return `<span><i class="swatch" style="background:${x.p.color}"></i>${expEsc(x.p.name.replace(/^\[움티\]\s*/,""))} <b>${cnt(x.r.count)}건</b> ${Math.round(pc)}%</span>`; }).join("")}</div>
+  </div></section>` : ""}
+${lines.length ? `<section><div class="head"><h2>이번 주 핵심</h2></div>
+  <div class="insight"><ul>${lines.map(l=>`<li>${expRich(l)}</li>`).join("")}</ul></div></section>` : ""}
+<section><div class="head"><h2>상품별 현황</h2><p>판매건수·판매액은 환불 차감 전 · 누적 순판매액은 환불 차감 후 · 전주 대비는 판매건수 기준</p></div>
+  <div class="panel scroll" style="padding-top:12px"><table class="main">
+    <thead><tr><th>상품</th><th>판매건수</th><th>판매액</th><th>실구매자</th><th>전주 대비</th><th>누적 순판매액</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td>합계</td><td class="num">${cnt(d.tot.count)}</td><td class="num">${won(d.tot.amount)}</td><td class="num">${cnt(buyers)}</td><td></td><td></td></tr></tfoot>
+  </table></div></section>
+${fw.length>1 ? `<section><div class="head"><h2>역대 출시 첫 주 비교</h2><p>출시일부터 7일, 환불 차감 후 판매건수</p></div>
+  <div class="panel fw">${fw.map(x=>`<div class="fwrow">
+    <div class="fwname"><span class="pn" style="font-weight:700"><i class="swatch" style="background:${x.p.color}"></i>${expName(x.p.name)}</span>${x.current?'<span class="tag">이번 주 출시</span>':""}<small>${md(x.p.launch)} 출시</small></div>
+    <div class="track"><div class="fill" style="width:${Math.max(x.count/fwMax*100,2).toFixed(1)}%;background:${x.p.color}"></div></div>
+    <div class="fwval num"><b>${cnt(x.count)}건</b> · ${won(x.amount)}원 · ${cnt(x.buyers)}명</div></div>`).join("")}</div></section>` : ""}
+${leg.length ? `<section><div class="head"><h2>레거시(구작) 판매</h2><p>대시보드 추적 대상이 아닌 이전 상품 · 위 합계(${cnt(d.tot.count)}건)에는 포함되지 않음</p></div>
+  <div class="panel scroll" style="padding-top:12px"><table>
+    <thead><tr><th>상품</th><th>판매건수</th><th>판매액</th></tr></thead>
+    <tbody>${leg.map(x=>`<tr><td><b>${expEsc(x.name)}</b></td><td class="num">${cnt(x.count)}</td><td class="num">${won(x.amount)}</td></tr>`).join("")}</tbody>
+    <tfoot><tr><td>합계</td><td class="num">${cnt(legTot.c)}</td><td class="num">${won(legTot.m)}</td></tr></tfoot>
+  </table></div></section>` : ""}
+<div class="foot">누적 현황과 전체 회차 추이는 대시보드에서 확인할 수 있습니다${o.link ? ` · <a href="${expEsc(o.link)}">${expEsc(o.link)}</a>` : ""}<br>
+  출처: OGQ 마켓 판매 분석 · 매주 목요일 확인 기준</div>
+</div></body></html>`;
+}
+
+function expReportOpts(){
+  const L = expParseLegacy(document.getElementById("expLegacy").value);
+  return { headline: document.getElementById("expHeadline").value.trim(),
+           comment: document.getElementById("expComment").value.trim(),
+           legacy: L.out, bad: L.bad,
+           link: document.getElementById("expLink").value.trim() };
+}
+document.getElementById("expReport").addEventListener("click", ()=>{
+  const d = expData(expIdx), o = expReportOpts();
+  try{ localStorage.setItem("ogqExpLink", o.link); }catch(e){}
+  const html = reportHtml(d, o);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([html], {type:"text/html;charset=utf-8"}));
+  a.download = `움티_주간리포트_${d.w.no}회차_${d.w.end}.html`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  expMsg(o.bad.length ? `저장했어요 · 레거시 ${o.bad.length}줄은 형식을 읽지 못해 빠졌어요` : "리포트를 저장했어요");
+});
+window.__reportHtml = (wi, o)=>reportHtml(expData(wi), o);   // 테스트/자동화용
+try{ document.getElementById("expLink").value = localStorage.getItem("ogqExpLink") || ""; }catch(e){}
+
+
+/* ---------------------------------------------- 그래프 이미지 (Confluence용, 그래프만 따로) */
+async function expLoadFonts(){
+  try{ for(const w of [400,700,800]) await document.fonts.load(`${w} 14px "Nanum Gothic"`, "가나다 0123 건원명%"); }catch(e){}
+}
+function expSaveCanvas(cv, filename){
+  cv.toBlob(b=>{
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    expMsg("그래프 이미지를 저장했어요");
+  }, "image/png");
+}
+function expKit(ctx){
+  const F = (w,sz)=>`${w} ${sz}px ${EXP_FONT}`;
+  return {
+    F,
+    T:(str,x,y,o={})=>{ ctx.font=F(o.w||400,o.s||14); ctx.fillStyle=o.c||"#181722"; ctx.textAlign=o.a||"left"; ctx.textBaseline="alphabetic"; ctx.fillText(str,x,y); },
+    W:(str,w,sz)=>{ ctx.font=F(w,sz); return ctx.measureText(str).width; }
+  };
+}
+const shortNm = n => n.replace(/^\[움티\]\s*/,"");
+
+/* 1) 이번 주 판매 구성 */
+async function expChartMix(){
+  await expLoadFonts();
+  const d = expData(expIdx);
+  const cv = document.createElement("canvas"), ctx = cv.getContext("2d"), K = expKit(ctx);
+  const W=1000, PAD=34, SC=2, INK="#181722", INK60="#5a5866", INK35="#93909f";
+  const rows = d.rows, total = d.tot.count;
+  /* 범례 줄바꿈 계산 */
+  const items = rows.map(x=>{
+    const pc = total ? Math.round(x.r.count/total*100) : 0;
+    return { x, nm:shortNm(x.p.name), cnt:cnt(x.r.count)+"건", pc:pc+"%" };
+  });
+  const lay = []; let lx=PAD, ly=0, lines=1;
+  items.forEach(it=>{
+    const w = 11+8 + K.W(it.nm+" ",400,13.5) + K.W(it.cnt,800,13.5) + K.W("  "+it.pc,400,13.5) + 26;
+    if(lx+w > W-PAD){ lx=PAD; ly+=26; lines++; }
+    lay.push({it, x:lx, y:ly}); lx+=w;
+  });
+  const H = 150 + lines*26 + 22;
+  cv.width=W*SC; cv.height=H*SC; ctx.setTransform(SC,0,0,SC,0,0);
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);
+  K.T("이번 주 판매 구성", PAD, 46, {w:800,s:21});
+  K.T(`${d.w.no}회차 · ${md(d.w.start)} – ${md(d.w.end)} · 판매건수 ${cnt(total)}건 기준`, PAD, 70, {s:13,c:INK35});
+  /* 막대 */
+  const bx=PAD, by=92, bw=W-PAD*2, bh=46, gap=2;
+  const segs = rows.filter(x=>x.r.count>0);
+  ctx.save(); ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,11); ctx.clip();
+  let cx = bx; const usable = bw - gap*(segs.length-1);
+  segs.forEach((x,i)=>{
+    const w = usable*x.r.count/total;
+    ctx.fillStyle = x.p.color; ctx.fillRect(cx, by, w, bh);
+    const pc = x.r.count/total*100;
+    if(pc>=14) K.T(`${shortNm(x.p.name)}  ${cnt(x.r.count)}건 · ${Math.round(pc)}%`, cx+16, by+29, {w:800,s:15,c:"#fff"});
+    cx += w + gap;
+  });
+  ctx.restore();
+  /* 범례 */
+  lay.forEach(({it,x,y})=>{
+    const yy = 168 + y;
+    ctx.fillStyle = it.x.p.color; ctx.beginPath(); ctx.roundRect(x, yy-11, 11, 11, 3); ctx.fill();
+    let tx = x+19;
+    K.T(it.nm+" ", tx, yy, {s:13.5,c:INK60}); tx += K.W(it.nm+" ",400,13.5);
+    K.T(it.cnt, tx, yy, {w:800,s:13.5}); tx += K.W(it.cnt,800,13.5);
+    K.T("  "+it.pc, tx, yy, {s:13.5,c:INK35});
+  });
+  expSaveCanvas(cv, `움티_그래프_판매구성_${d.w.no}회차.png`);
+}
+
+/* 2) 역대 출시 첫 주 비교 */
+async function expChartFirstWeek(){
+  await expLoadFonts();
+  const d = expData(expIdx), fw = expFirstWeeks(d);
+  if(fw.length<1){ expMsg("비교할 출시 기록이 없어요"); return; }
+  const cv = document.createElement("canvas"), ctx = cv.getContext("2d"), K = expKit(ctx);
+  const W=1000, PAD=34, SC=2, INK="#181722", INK60="#5a5866", INK35="#93909f", LINE="#e9e7f0";
+  const ROW=58, H = 100 + ROW*fw.length + 24;
+  cv.width=W*SC; cv.height=H*SC; ctx.setTransform(SC,0,0,SC,0,0);
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);
+  K.T("역대 출시 첫 주 비교", PAD, 46, {w:800,s:21});
+  K.T(`출시일부터 7일 · 환불 차감 후 판매건수 · ${md(d.w.start)} – ${md(d.w.end)} 기준`, PAD, 70, {s:13,c:INK35});
+  const max = Math.max(...fw.map(x=>x.count),1);
+  const bx=330, bw=330;
+  fw.forEach((x,i)=>{
+    const top = 92 + i*ROW, cy = top + ROW/2;
+    if(i>0){ ctx.strokeStyle=LINE; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(PAD,top); ctx.lineTo(W-PAD,top); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.fillStyle=x.p.color; ctx.beginPath(); ctx.roundRect(PAD, cy-15, 11, 11, 3); ctx.fill();
+    const nm = x.p.name; K.T(nm, PAD+19, cy-4, {w:700,s:14});
+    if(x.current){
+      const nx = PAD+19+K.W(nm,700,14)+10, tw = K.W("이번 주 출시",800,10.5)+14;
+      ctx.fillStyle=INK; ctx.beginPath(); ctx.roundRect(nx, cy-18, tw, 17, 5); ctx.fill();
+      K.T("이번 주 출시", nx+7, cy-5.5, {w:800,s:10.5,c:"#fff"});
+    }
+    K.T(`${md(x.p.launch)} 출시`, PAD+19, cy+14, {s:11.5,c:INK35});
+    ctx.fillStyle="#f0eff5"; ctx.beginPath(); ctx.roundRect(bx, cy-8, bw, 16, 6); ctx.fill();
+    ctx.fillStyle=x.p.color; ctx.beginPath(); ctx.roundRect(bx, cy-8, Math.max(bw*x.count/max, 6), 16, 6); ctx.fill();
+    const rest = `  · ${won(x.amount)}원 · ${cnt(x.buyers)}명`, big = cnt(x.count)+"건";
+    K.T(rest, W-PAD, cy+5, {s:13,c:INK60,a:"right"});
+    K.T(big, W-PAD-K.W(rest,400,13), cy+5, {w:800,s:16,a:"right"});
+  });
+  expSaveCanvas(cv, `움티_그래프_첫주비교_${d.w.no}회차.png`);
+}
+document.getElementById("expChartMix").addEventListener("click", expChartMix);
+document.getElementById("expChartFw").addEventListener("click", expChartFirstWeek);
+
 if(typeof window !== "undefined") window.addEventListener("hashchange", applyMode);
 applyMode();
 
