@@ -133,6 +133,7 @@
 
   /* 보고용 화면에서는 편집 도구 숨김 */
   #editSection,#editBadge{display:none}
+  body.capture #recSection,body.capture #editSection{display:none !important}
   body.edit #editSection{display:block}
   body.edit #editBadge{display:block}
   #btnExport{display:none}
@@ -215,8 +216,6 @@
   <input id="expHeadline" placeholder="예: 덜덜이 출시 첫 주 92건, 기존 4종은 합계 5건으로 저조">
   <label for="expLegacy">레거시(구작) 판매 — 한 줄에 하나씩, 예: 움직이는 백호구와 꿀잼 3건 9,000원 (대시보드 기록에는 들어가지 않아요)</label>
   <textarea id="expLegacy" rows="4" placeholder="상품명 3건 9,000원"></textarea>
-  <label for="expLink">대시보드 링크 (리포트 하단에 표시 · 이 브라우저에 기억해둬요)</label>
-  <input id="expLink" placeholder="https://...">
   <div class="actions">
     <button class="btn" id="expReport">주간 리포트 저장 (HTML)</button>
     <button class="btn ghost" id="expChartMix">그래프 이미지 · 판매 구성</button>
@@ -270,7 +269,7 @@
   </div>
 </section>
 
-<section>
+<section id="recSection">
   <div class="head"><h2>기록</h2><p id="recHint"></p><button class="btn ghost" id="btnExport" style="margin-left:auto;padding:6px 12px;font-size:12px">이번 주 요약 내보내기</button></div>
   <div class="panel scroll" style="padding-top:16px"><div id="tblBox"></div></div>
 </section>
@@ -1084,6 +1083,8 @@ function applyMode(){
   const edit = (typeof location !== "undefined") && location.hash === "#edit";
   if(typeof document.body !== "undefined" && document.body && document.body.classList)
     document.body.classList.toggle("edit", edit);
+  const cap = (typeof location !== "undefined") && location.hash === "#capture";
+  if(document.body && document.body.classList) document.body.classList.toggle("capture", cap);
 }
 
 /* ---------------------------------------------- 주간 요약 내보내기 */
@@ -1092,16 +1093,18 @@ let expIdx = -1;
 
 function expData(wi){
   const ws = weeks(), w = ws[wi], pw = wi>0 ? ws[wi-1] : null;
-  const rows = productsByRecent().map(p => ({ p, r: w.rows.find(x=>x.product===p.name) }))
+  /* 리포트·텍스트는 대시보드와 같은 기준(환불 차감 후)으로 통일. 환불 건수는 refunds로 따로 보관 */
+  const adj = r => r ? Object.assign({}, r, { count:netCnt(r), amount:netAmt(r), gross:r.count, grossAmount:r.amount }) : r;
+  const rows = productsByRecent().map(p => ({ p, r: adj(w.rows.find(x=>x.product===p.name)) }))
     .filter(x=>x.r).map(({p,r}) => {
-      const pr = pw ? pw.rows.find(x=>x.product===p.name) : null;
+      const pr = pw ? adj(pw.rows.find(x=>x.product===p.name)) : null;
       const isNew = !pr && p.launch >= w.start && p.launch <= w.end;
       const c = cumAt(p, ws, wi);
       return { p, r, pr, isNew, cum: c ? c.netGross : null };
     });
   const sum = (arr,f)=>arr.reduce((a,x)=>a+f(x),0);
   const tot = { count:sum(rows,x=>x.r.count), amount:sum(rows,x=>x.r.amount), refunds:sum(rows,x=>x.r.refunds||0) };
-  const ptot = pw ? { count:sum(pw.rows,r=>r.count), amount:sum(pw.rows,r=>r.amount) } : null;
+  const ptot = pw ? { count:sum(pw.rows,r=>netCnt(r)), amount:sum(pw.rows,r=>netAmt(r)) } : null;
   return { ws, w, pw, rows, tot, ptot };
 }
 function expDelta(x){
@@ -1404,7 +1407,7 @@ function reportHtml(d, o){
     const dl = expDelta(x);
     return `<tr>
       <td><span class="pn"><i class="swatch" style="background:${x.p.color}"></i>${expName(x.p.name)}</span></td>
-      <td class="num" style="font-size:15px"><b>${cnt(x.r.count)}</b>${x.r.refunds?` <span class="rf">(환불 ${x.r.refunds})</span>`:""}</td>
+      <td class="num" style="font-size:15px"><b>${cnt(x.r.count)}</b>${x.r.refunds?` <span class="rf">(환불 ${x.r.refunds}건 차감)</span>`:""}</td>
       <td class="num">${won(x.r.amount)}</td>
       <td class="num">${cnt(x.r.buyers||0)}</td>
       <td class="${pctUp(dl) || (dl==="신규 출시"?"up":"dim")}"><b>${dl}</b></td>
@@ -1422,7 +1425,7 @@ function reportHtml(d, o){
 <body><div class="wrap">
 <header>
   <div><h1>OGQ 움티 주간 판매 리포트</h1>
-    <p class="sub">${d.w.no}회차 · ${md(d.w.start)} – ${md(d.w.end)} · 첫 주 비교는 환불 차감 후(순판매) 기준</p></div>
+    <p class="sub">${d.w.no}회차 · ${md(d.w.start)} – ${md(d.w.end)} · 모든 수치는 환불 차감 후(순판매) 기준</p></div>
   <div class="stamp"><b>${d.w.no}회차</b>${d.w.start} ~ ${d.w.end}</div>
 </header>
 ${o.headline ? `<div class="headline">${expEsc(o.headline)}</div>` : ""}
@@ -1432,7 +1435,7 @@ ${o.headline ? `<div class="headline">${expEsc(o.headline)}</div>` : ""}
   <div class="kpi"><div class="lab">판매액</div><div class="val num">${won(d.tot.amount)}<small>원</small></div>
     <div class="delta">${d.ptot ? "전주 "+won(d.ptot.amount)+"원" : "&nbsp;"}</div></div>
   <div class="kpi"><div class="lab">실구매자</div><div class="val num">${cnt(buyers)}<small>명</small></div><div class="delta">&nbsp;</div></div>
-  <div class="kpi"><div class="lab">환불</div><div class="val num">${d.tot.refunds?cnt(d.tot.refunds)+"<small>건</small>":"없음"}</div><div class="delta">&nbsp;</div></div>
+  <div class="kpi"><div class="lab">환불(차감 완료)</div><div class="val num">${d.tot.refunds?cnt(d.tot.refunds)+"<small>건</small>":"없음"}</div><div class="delta">&nbsp;</div></div>
 </div>
 ${d.tot.count>0 ? `<section><div class="head"><h2>이번 주 판매 구성</h2><p>판매건수 기준 · 상품별 비중</p></div>
   <div class="panel" style="padding-top:2px"><div class="mixbar">${d.rows.filter(x=>x.r.count>0).map(x=>{
@@ -1444,7 +1447,7 @@ ${d.tot.count>0 ? `<section><div class="head"><h2>이번 주 판매 구성</h2><
   </div></section>` : ""}
 ${lines.length ? `<section><div class="head"><h2>이번 주 핵심</h2></div>
   <div class="insight"><ul>${lines.map(l=>`<li>${expRich(l)}</li>`).join("")}</ul></div></section>` : ""}
-<section><div class="head"><h2>상품별 현황</h2><p>판매건수·판매액은 환불 차감 전 · 누적 순판매액은 환불 차감 후 · 전주 대비는 판매건수 기준</p></div>
+<section><div class="head"><h2>상품별 현황</h2><p>모든 수치는 환불 차감 후(순판매) 기준 · 전주 대비는 판매건수 기준</p></div>
   <div class="panel scroll" style="padding-top:12px"><table class="main">
     <thead><tr><th>상품</th><th>판매건수</th><th>판매액</th><th>실구매자</th><th>전주 대비</th><th>누적 순판매액</th></tr></thead>
     <tbody>${rows}</tbody>
@@ -1461,8 +1464,7 @@ ${leg.length ? `<section><div class="head"><h2>레거시(구작) 판매</h2><p>�
     <tbody>${leg.map(x=>`<tr><td><b>${expEsc(x.name)}</b></td><td class="num">${cnt(x.count)}</td><td class="num">${won(x.amount)}</td></tr>`).join("")}</tbody>
     <tfoot><tr><td>합계</td><td class="num">${cnt(legTot.c)}</td><td class="num">${won(legTot.m)}</td></tr></tfoot>
   </table></div></section>` : ""}
-<div class="foot">누적 현황과 전체 회차 추이는 대시보드에서 확인할 수 있습니다${o.link ? ` · <a href="${expEsc(o.link)}">${expEsc(o.link)}</a>` : ""}<br>
-  출처: OGQ 마켓 판매 분석 · 매주 목요일 확인 기준</div>
+<div class="foot">출처: OGQ 마켓 판매 분석 · 매주 목요일 확인 기준</div>
 </div></body></html>`;
 }
 
@@ -1470,12 +1472,10 @@ function expReportOpts(){
   const L = expParseLegacy(document.getElementById("expLegacy").value);
   return { headline: document.getElementById("expHeadline").value.trim(),
            comment: document.getElementById("expComment").value.trim(),
-           legacy: L.out, bad: L.bad,
-           link: document.getElementById("expLink").value.trim() };
+           legacy: L.out, bad: L.bad };
 }
 document.getElementById("expReport").addEventListener("click", ()=>{
   const d = expData(expIdx), o = expReportOpts();
-  try{ localStorage.setItem("ogqExpLink", o.link); }catch(e){}
   const html = reportHtml(d, o);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([html], {type:"text/html;charset=utf-8"}));
@@ -1485,7 +1485,6 @@ document.getElementById("expReport").addEventListener("click", ()=>{
   expMsg(o.bad.length ? `저장했어요 · 레거시 ${o.bad.length}줄은 형식을 읽지 못해 빠졌어요` : "리포트를 저장했어요");
 });
 window.__reportHtml = (wi, o)=>reportHtml(expData(wi), o);   // 테스트/자동화용
-try{ document.getElementById("expLink").value = localStorage.getItem("ogqExpLink") || ""; }catch(e){}
 
 
 /* ---------------------------------------------- 그래프 이미지 (Confluence용, 그래프만 따로) */
